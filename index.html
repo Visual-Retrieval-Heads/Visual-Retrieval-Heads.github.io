@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Retrieval Heads Meet Vision | ICML 2026 Workshop</title>
+  <meta name="description" content="ICML 2026 Workshop on Mechanistic Interpretability version. Visual Retrieval Heads (VRHs) are a sparse set of attention heads that causally route visual evidence from text-referred image regions to a VLM's output.">
+  <meta name="author" content="Chanho Park, Daehyeon Choi, Jihyun Lee, Minhyuk Sung">
+  <meta name="citation_title" content="Retrieval Heads Meet Vision: Uncovering How VLMs Locate and Extract Visual Information">
+  <meta name="citation_author" content="Chanho Park">
+  <meta name="citation_author" content="Daehyeon Choi">
+  <meta name="citation_author" content="Jihyun Lee">
+  <meta name="citation_author" content="Minhyuk Sung">
+  <meta name="citation_conference_title" content="ICML 2026 Workshop on Mechanistic Interpretability">
+  <meta name="citation_publication_date" content="2026">
+  <meta property="og:title" content="Retrieval Heads Meet Vision">
+  <meta property="og:description" content="Uncovering how VLMs locate and extract visual information through a sparse set of causal attention heads.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="ICML 2026 Workshop on Mechanistic Interpretability">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    /* ============================================================
+       Design system — "attention heat" academic theme
+       ============================================================ */
+    :root {
+      --ink:        #11151d;   /* headings */
+      --body:       #3b4250;   /* body text */
+      --muted:      #6b7280;   /* captions, meta */
+      --faint:      #9aa3af;
+      --bg:         #ffffff;
+      --bg-soft:    #f7f8fa;   /* alt sections */
+      --bg-warm:    #fdf8f3;   /* warm tinted sections */
+      --line:       #e8eaef;
+      --line-2:     #dde0e6;
+
+      /* signature accent: the "hot" attention colormap */
+      --accent:     #d83a34;   /* VRH / Ours red */
+      --accent-700: #b22a26;
+      --accent-50:  #fdeeed;
+      --amber:      #ef8e1f;   /* heat secondary */
+      --amber-50:   #fdf2e2;
+      --good:       #1f9d57;   /* correct */
+      --good-50:    #e9f7ef;
+      --bad:        #d83a34;   /* wrong / masked */
+      --slatey:     #475569;
+      --heat: linear-gradient(90deg,#241008 0%, #7c1d12 22%, #d83a34 48%, #ef8e1f 74%, #ffd789 100%);
+
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-serif: 'Source Serif 4', Georgia, serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+      --maxw: 920px;
+      --maxw-wide: 1140px;
+      --radius: 14px;
+      --radius-sm: 9px;
+      --shadow-sm: 0 1px 2px rgba(17,21,29,.05);
+      --shadow: 0 4px 18px -6px rgba(17,21,29,.12), 0 2px 6px -3px rgba(17,21,29,.08);
+      --shadow-lg: 0 22px 50px -18px rgba(17,21,29,.28);
+    }
+
+    *,*::before,*::after { box-sizing: border-box; margin:0; padding:0; }
+    html { scroll-behavior: smooth; scroll-padding-top: 76px; -webkit-text-size-adjust:100%; }
+    body {
+      font-family: var(--font-sans);
+      color: var(--body);
+      background: var(--bg);
+      line-height: 1.72;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    img { max-width:100%; height:auto; display:block; }
+    a { color: var(--accent); text-decoration: none; transition: color .15s; }
+    a:hover { color: var(--accent-700); }
+    ::selection { background: #fcd9b6; color:#3a1c06; }
+
+    .container { max-width: var(--maxw); margin:0 auto; padding:0 24px; }
+    .wide { max-width: var(--maxw-wide); }
+    section { padding: 74px 0; }
+
+    /* ============================================================ Nav */
+    .nav {
+      position: fixed; inset: 0 0 auto 0; z-index: 100;
+      background: rgba(255,255,255,.82);
+      backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+      border-bottom: 1px solid transparent; transition: border-color .25s, box-shadow .25s;
+    }
+    .nav.scrolled { border-bottom-color: var(--line); box-shadow: 0 6px 24px -16px rgba(17,21,29,.4); }
+    .nav-inner {
+      max-width: var(--maxw-wide); margin:0 auto; padding: 0 24px; height: 60px;
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+    }
+    .nav-brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:15px; color:var(--ink); letter-spacing:-.01em; white-space:nowrap; }
+    .nav-dot { width:20px; height:20px; border-radius:6px; background:var(--heat); box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); flex:none; }
+    .nav-links { display:flex; align-items:center; gap:2px; }
+    .nav-links a {
+      font-size:13.5px; font-weight:500; color:var(--slatey); padding:7px 12px; border-radius:7px;
+      transition: background .15s,color .15s; position:relative;
+    }
+    .nav-links a:hover { color:var(--ink); background:var(--bg-soft); }
+    .nav-links a.active { color:var(--accent-700); }
+    .nav-paper {
+      font-size:13.5px; font-weight:600; color:#fff !important; background:var(--ink);
+      padding:8px 15px !important; border-radius:8px; display:inline-flex; align-items:center; gap:7px;
+    }
+    .nav-paper:hover { background:#000; }
+    @media (max-width: 860px){ .nav-links a:not(.nav-paper){ display:none; } }
+
+    /* ============================================================ Hero */
+    .hero { padding: 124px 0 56px; text-align:center; position:relative; overflow:hidden; }
+    .hero::before {
+      content:""; position:absolute; inset:0 0 auto 0; height:380px; z-index:-1;
+      background:
+        radial-gradient(58% 90% at 50% -8%, rgba(239,142,31,.13), transparent 60%),
+        radial-gradient(40% 70% at 78% 4%, rgba(216,58,52,.10), transparent 62%);
+    }
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:9px; font-size:12.5px; font-weight:600; letter-spacing:.04em;
+      text-transform:uppercase; color:var(--accent-700); background:var(--accent-50);
+      border:1px solid #f6d3d0; padding:6px 14px; border-radius:999px; margin-bottom:26px;
+    }
+    .hero-badge i { font-size:11px; }
+    .hero h1 {
+      font-family: var(--font-serif); font-weight:500; color:var(--ink);
+      font-size: clamp(30px, 5.1vw, 53px); line-height:1.1; letter-spacing:-.018em; margin:0 auto 8px; max-width:14ch;
+    }
+    .hero .subtitle {
+      font-family: var(--font-serif); font-style:italic; font-weight:400; color:var(--slatey);
+      font-size: clamp(17px, 2.4vw, 23px); line-height:1.35; margin: 14px auto 0; max-width: 30ch;
+    }
+    .title-accent { background:var(--heat); -webkit-background-clip:text; background-clip:text; color:transparent; }
+
+    .authors { margin: 30px auto 4px; max-width: 760px; font-size:16.5px; color:var(--ink); font-weight:500; line-height:1.9; }
+    .authors span { white-space:nowrap; margin:0 4px; }
+    .authors sup { color:var(--accent); font-weight:700; }
+    .affil { color:var(--muted); font-size:15px; margin-top:4px; }
+    .authors a { color:inherit; border-bottom:1px solid transparent; }
+    .authors a:hover { color:var(--accent); border-bottom-color:var(--accent); }
+
+    .hero-links { display:flex; flex-wrap:wrap; justify-content:center; gap:11px; margin-top:30px; }
+    .btn {
+      display:inline-flex; align-items:center; gap:9px; font-size:14.5px; font-weight:600;
+      padding:11px 20px; border-radius:10px; border:1px solid var(--line-2); background:#fff; color:var(--ink);
+      transition: transform .14s, box-shadow .14s, background .14s, border-color .14s; box-shadow: var(--shadow-sm);
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); color:var(--ink); }
+    .btn.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+    .btn.primary:hover { background:#000; color:#fff; }
+    .btn i { font-size:15px; }
+
+    /* ============================================================ Teaser */
+    .teaser { margin: 50px auto 0; max-width: var(--maxw-wide); padding:0 24px; }
+    .teaser-frame {
+      background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+      padding:16px; box-shadow: var(--shadow-lg);
+    }
+    .teaser-frame img { border-radius:7px; }
+    .figcap { font-size:14px; color:var(--muted); line-height:1.6; margin-top:14px; padding:0 6px; }
+    .figcap strong { color:var(--ink); font-weight:650; }
+    .teaser .figcap { text-align:left; max-width: 980px; margin:14px auto 0; }
+
+    /* ============================================================ Section headers */
+    .section-head { margin-bottom: 38px; }
+    .section-head.center { text-align:center; }
+    .eyebrow {
+      display:inline-flex; align-items:center; gap:9px; font-size:12.5px; font-weight:700; letter-spacing:.09em;
+      text-transform:uppercase; color:var(--accent-700); margin-bottom:14px;
+    }
+    .eyebrow::before { content:""; width:22px; height:3px; border-radius:2px; background:var(--heat); }
+    .section-head.center .eyebrow::before { display:none; }
+    h2.section-title {
+      font-family:var(--font-serif); font-weight:500; color:var(--ink); letter-spacing:-.015em;
+      font-size: clamp(25px, 3.6vw, 36px); line-height:1.16;
+    }
+    .section-sub { font-size:17.5px; color:var(--slatey); margin-top:14px; max-width:66ch; }
+    .section-head.center .section-sub { margin-left:auto; margin-right:auto; }
+
+    h3.sub-title { font-size:21px; font-weight:700; color:var(--ink); letter-spacing:-.01em; margin: 6px 0 6px; }
+    p { margin-bottom: 18px; }
+    p:last-child { margin-bottom:0; }
+    .lead { font-size:18.5px; }
+    .soft { background: var(--bg-soft); }
+    .warm { background: var(--bg-warm); }
+    em { font-style: italic; }
+    strong { font-weight: 650; color: var(--ink); }
+    .mono { font-family:var(--font-mono); font-size:.92em; }
+    .hl { background: linear-gradient(transparent 62%, #fcdcb0 62%); padding:0 1px; }
+
+    /* ============================================================ TL;DR */
+    .tldr { padding: 0; margin-top:-18px; }
+    .tldr-box {
+      max-width: 880px; margin: 0 auto; background:#fff; border:1px solid var(--line);
+      border-left: 4px solid var(--accent); border-radius: var(--radius); padding: 26px 30px; box-shadow: var(--shadow);
+      position:relative;
+    }
+    .tldr-label { font-size:12px; font-weight:800; letter-spacing:.14em; color:var(--accent-700); text-transform:uppercase; margin-bottom:8px; }
+    .tldr-text { font-family:var(--font-serif); font-size:19.5px; line-height:1.55; color:var(--ink); }
+
+    /* ============================================================ Stats */
+    .stats { display:grid; grid-template-columns: repeat(4,1fr); gap:16px; }
+    .stat {
+      background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:24px 20px; text-align:center;
+      transition: transform .16s, box-shadow .16s; box-shadow: var(--shadow-sm);
+    }
+    .stat:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .stat-num { font-size: clamp(28px,3.4vw,38px); font-weight:800; letter-spacing:-.02em; color:var(--accent); line-height:1; font-family:var(--font-sans); }
+    .stat-num.ink { color:var(--ink); }
+    .stat-lab { font-size:14.5px; font-weight:650; color:var(--ink); margin-top:10px; }
+    .stat-det { font-size:12.5px; color:var(--muted); margin-top:4px; }
+    @media (max-width: 720px){ .stats{ grid-template-columns: repeat(2,1fr);} }
+
+    /* ============================================================ Abstract */
+    .abstract-body { font-family:var(--font-serif); font-size:18.5px; line-height:1.74; color:#2c333f; }
+    .abstract-body p { margin-bottom: 16px; }
+
+    /* ============================================================ Cards / grids */
+    .grid-3 { display:grid; grid-template-columns: repeat(3,1fr); gap:18px; }
+    .grid-2 { display:grid; grid-template-columns: repeat(2,1fr); gap:20px; }
+    @media (max-width: 820px){ .grid-3, .grid-2 { grid-template-columns: 1fr; } }
+    .card {
+      background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:26px; box-shadow: var(--shadow-sm);
+      transition: transform .16s, box-shadow .16s, border-color .16s;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--line-2); }
+    .card-ic {
+      width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+      font-size:19px; color:#fff; margin-bottom:16px; background:var(--ink);
+    }
+    .card-ic.red { background: linear-gradient(135deg,#e2483d,#b22a26); }
+    .card-ic.amber { background: linear-gradient(135deg,#f3a13a,#dd7a13); }
+    .card-ic.ink { background: linear-gradient(135deg,#2a3140,#11151d); }
+    .card h4 { font-size:18px; font-weight:700; color:var(--ink); margin-bottom:8px; letter-spacing:-.01em; }
+    .card p { font-size:15px; color:var(--body); margin:0; }
+    .card .tag { display:inline-block; font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--accent-700); margin-bottom:12px; }
+
+    /* property cards (numbered) */
+    .prop { position:relative; }
+    .prop .num {
+      position:absolute; top:22px; right:24px; font-family:var(--font-serif); font-size:40px; font-weight:500;
+      color:var(--line-2); line-height:1;
+    }
+    .prop h4 { padding-right: 36px; }
+
+    /* ============================================================ Figures */
+    .figure {
+      background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:18px; box-shadow: var(--shadow-sm); margin: 8px 0;
+    }
+    .figure img { border-radius:6px; margin:0 auto; }
+    .figure.plain { border:none; box-shadow:none; padding:0; background:transparent; }
+    .figure .figcap { text-align:left; }
+
+    /* ============================================================ Tables */
+    .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-sm); background:#fff; -webkit-overflow-scrolling:touch; }
+    table { border-collapse: collapse; width:100%; font-size:14.5px; min-width: 520px; }
+    thead th {
+      background:var(--bg-soft); color:var(--ink); font-weight:700; text-align:center; padding:12px 14px;
+      border-bottom:1px solid var(--line-2); white-space:nowrap; font-size:13.5px;
+    }
+    th.left, td.left { text-align:left; }
+    tbody td { padding:10px 14px; text-align:center; border-bottom:1px solid var(--line); color:var(--body); white-space:nowrap; }
+    tbody tr:last-child td { border-bottom:none; }
+    tbody tr.ours { background: var(--accent-50); }
+    tbody tr.ours td { color:var(--ink); font-weight:600; }
+    tbody tr.group-sep td { border-top: 2px solid var(--line-2); }
+    .row-label { text-align:left; font-weight:650; color:var(--ink); }
+    .chip { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; letter-spacing:.03em; }
+    .chip.ours { background:var(--accent); color:#fff; }
+    .chip.no { background:#fbe9e8; color:var(--accent-700); }
+    .chip.yes { background:var(--good-50); color:var(--good); }
+    .delta-bad { color:var(--accent); font-weight:600; font-size:12.5px; }
+    .delta-flat { color:var(--faint); font-weight:500; font-size:12.5px; }
+    .tbl-note { font-size:13px; color:var(--muted); margin-top:12px; }
+    .vrh-tag { font-family:var(--font-mono); font-size:.9em; }
+
+    /* ============================================================ Method: formula + design space */
+    .formula {
+      background:#0f1219; color:#e7e9ee; border-radius:var(--radius); padding:30px 26px; text-align:center;
+      font-family:var(--font-mono); overflow-x:auto; box-shadow: var(--shadow); border:1px solid #1d2230;
+    }
+    .formula .eq { font-size: clamp(15px, 2.3vw, 21px); line-height:1.7; white-space:nowrap; display:inline-block; }
+    .formula .q { color:#ffb37a; }      /* query set */
+    .formula .k { color:#ff7a72; }      /* key agg */
+    .formula .s { color:#7fd0ff; }      /* sample agg */
+    .formula .dim { color:#8b93a7; }
+    .formula sub { font-size:.7em; }
+    .formula-legend { display:flex; flex-wrap:wrap; gap:18px; justify-content:center; margin-top:20px; font-size:13.5px; }
+    .formula-legend span { display:inline-flex; align-items:center; gap:7px; color:#aab2c2; font-family:var(--font-sans); }
+    .lg-dot { width:11px; height:11px; border-radius:3px; }
+
+    /* design-space picker */
+    .ds {
+      display:grid; grid-template-columns: 1.1fr 1fr; gap:0; border:1px solid var(--line); border-radius:var(--radius);
+      overflow:hidden; box-shadow: var(--shadow-sm); background:#fff;
+    }
+    @media (max-width: 780px){ .ds { grid-template-columns:1fr; } }
+    .ds-controls { padding:26px; border-right:1px solid var(--line); }
+    @media (max-width: 780px){ .ds-controls { border-right:none; border-bottom:1px solid var(--line); } }
+    .ds-axis { margin-bottom:22px; }
+    .ds-axis:last-child { margin-bottom:0; }
+    .ds-axis .axis-label { font-size:12.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); margin-bottom:9px; display:flex; align-items:center; gap:8px; }
+    .axis-tick { width:10px; height:10px; border-radius:3px; }
+    .seg { display:flex; gap:6px; background:var(--bg-soft); padding:5px; border-radius:10px; }
+    .seg button {
+      flex:1; border:none; background:transparent; font-family:var(--font-sans); font-size:13.5px; font-weight:600;
+      color:var(--slatey); padding:9px 8px; border-radius:7px; cursor:pointer; transition: all .15s; line-height:1.25;
+    }
+    .seg button .mono { font-size:11.5px; display:block; color:var(--faint); margin-top:2px; font-weight:500; }
+    .seg button.on { background:#fff; color:var(--ink); box-shadow: var(--shadow-sm); }
+    .seg button.on .mono { color:var(--accent); }
+    .ds-result { padding:26px; display:flex; flex-direction:column; justify-content:center; background:var(--bg-soft); }
+    .ds-match { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+    .ds-name { font-size:23px; font-weight:800; color:var(--ink); letter-spacing:-.01em; line-height:1.15; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .ds-name .badge-ours { font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#fff; background:var(--accent); padding:3px 9px; border-radius:999px; }
+    .ds-desc { font-size:14.5px; color:var(--body); margin-top:12px; }
+    .ds-coords { font-family:var(--font-mono); font-size:12.5px; color:var(--muted); margin-top:14px; padding-top:14px; border-top:1px dashed var(--line-2); }
+
+    /* ============================================================ Head map */
+    .headmap-wrap { display:grid; grid-template-columns: 1fr 280px; gap:30px; align-items:center; }
+    @media (max-width: 820px){ .headmap-wrap { grid-template-columns:1fr; } }
+    .headmap-stage { background:#0f1219; border-radius:var(--radius); padding:22px 20px 16px; box-shadow:var(--shadow); border:1px solid #1d2230; }
+    .headmap {
+      display:grid; gap:2px; width:100%;
+    }
+    .hm-cell { aspect-ratio:1; border-radius:2px; background:#1b202c; transition: transform .1s; }
+    .hm-cell.vrh { box-shadow: 0 0 0 .5px rgba(255,255,255,.12); }
+    .hm-cell:hover { transform: scale(1.45); z-index:2; outline:1px solid #fff; }
+    .hm-axis { display:flex; justify-content:space-between; font-family:var(--font-mono); font-size:10.5px; color:#6b7385; margin-top:8px; }
+    .hm-yhint { font-family:var(--font-mono); font-size:10.5px; color:#6b7385; margin-bottom:8px; display:flex; justify-content:space-between; }
+    .headmap-info h4 { font-size:18px; color:var(--ink); margin-bottom:8px; font-weight:700; }
+    .headmap-info p { font-size:14.5px; color:var(--body); margin-bottom:14px; }
+    .hm-legend { display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--muted); }
+    .hm-bar { height:10px; flex:1; border-radius:5px; background:var(--heat); }
+    .hm-tip {
+      position:fixed; pointer-events:none; z-index:200; background:#0f1219; color:#fff; font-family:var(--font-mono);
+      font-size:12px; padding:6px 10px; border-radius:7px; box-shadow:var(--shadow); opacity:0; transform: translateY(4px);
+      transition: opacity .1s; white-space:nowrap; border:1px solid #2a3140;
+    }
+    .hm-readout { font-family:var(--font-mono); font-size:13px; color:#aab2c2; margin-top:6px; min-height:1.2em; }
+    .hm-readout b { color:#ffb37a; }
+
+    /* ============================================================ Interactive demo */
+    .demo { display:grid; grid-template-columns: 1.5fr 1fr; gap:24px; align-items:start; }
+    @media (max-width: 880px){ .demo { grid-template-columns:1fr; } }
+    .demo-stage { background:#0f1219; border:1px solid #1d2230; border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); }
+    .demo-imgwrap { position:relative; width:100%; aspect-ratio:4/3; border-radius:8px; overflow:hidden; background:#0b0d12; cursor:pointer; }
+    .demo-imgwrap img { width:100%; height:100%; object-fit:contain; display:block; transition:opacity .22s ease; }
+    .demo-statebadge { position:absolute; top:10px; left:10px; font-family:var(--font-mono); font-size:11.5px; font-weight:600; color:#fff; background:rgba(15,18,25,.72); border:1px solid rgba(255,255,255,.18); padding:4px 10px; border-radius:999px; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px); }
+    .demo-clickhint { position:absolute; bottom:10px; right:10px; font-size:11px; font-weight:600; color:#cdd3df; background:rgba(15,18,25,.6); border:1px solid rgba(255,255,255,.14); padding:4px 9px; border-radius:999px; display:inline-flex; gap:6px; align-items:center; opacity:0; transition:opacity .2s; }
+    .demo-imgwrap:hover .demo-clickhint { opacity:1; }
+    .demo-expr { margin-top:12px; display:flex; align-items:center; gap:10px; padding:2px 4px; flex-wrap:wrap; }
+    .demo-ds-chip { flex:none; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#ffb37a; background:rgba(239,142,31,.14); border:1px solid rgba(239,142,31,.3); padding:3px 9px; border-radius:999px; }
+    .demo-expr-text { font-family:var(--font-serif); font-style:italic; color:#cdd3df; font-size:15px; line-height:1.4; }
+    .demo-expr-text i { color:#6b7385; margin-right:6px; font-size:12px; }
+    .demo-panel { display:flex; flex-direction:column; gap:20px; padding-top:2px; }
+    .demo-flabel { font-size:12.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); margin-bottom:9px; }
+    .demo-pills { display:flex; flex-wrap:wrap; gap:7px; }
+    .demo-pills button { font-family:var(--font-sans); font-size:13px; font-weight:600; color:var(--slatey); background:#fff; border:1px solid var(--line-2); padding:7px 12px; border-radius:999px; cursor:pointer; transition:all .15s; }
+    .demo-pills button:hover { border-color:var(--accent); color:var(--accent-700); }
+    .demo-pills button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+    .demo-seg button { font-size:13px; padding:10px 6px; }
+    .demo-note { font-size:15px; color:var(--body); margin:0; min-height:3.6em; line-height:1.6; }
+    .b-gt { color:var(--good); font-weight:650; }
+    .b-pred { color:var(--accent); font-weight:650; }
+    .demo-meter { background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px 18px; box-shadow:var(--shadow-sm); transition:opacity .2s; }
+    .demo-meter-top { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+    .demo-meter-label { font-size:13px; font-weight:600; color:var(--slatey); }
+    .demo-meter-val { font-family:var(--font-sans); font-size:26px; font-weight:800; letter-spacing:-.02em; color:var(--good); transition:color .3s; }
+    .demo-meter.bad .demo-meter-val { color:var(--accent); }
+    .demo-meter-track { height:9px; background:var(--bg-soft); border:1px solid var(--line); border-radius:999px; overflow:hidden; margin:10px 0 8px; }
+    .demo-meter-fill { height:100%; width:86%; border-radius:999px; background:var(--good); transition:width .55s cubic-bezier(.2,.7,.3,1), background .3s; }
+    .demo-meter.bad .demo-meter-fill { background:var(--accent); }
+    .demo-meter-note { font-size:12.5px; color:var(--muted); line-height:1.5; }
+    .demo-legend { margin-top:2px; }
+
+    /* ============================================================ Callout / quote */
+    .callout {
+      background: linear-gradient(180deg,#fff,#fdf8f3); border:1px solid #f1e3d4; border-radius:var(--radius);
+      padding:28px 30px; box-shadow:var(--shadow-sm); display:flex; gap:20px; align-items:flex-start;
+    }
+    .callout .q-ic { font-size:24px; color:var(--amber); flex:none; margin-top:2px; }
+    .callout .q-text { font-family:var(--font-serif); font-size:19px; line-height:1.5; color:var(--ink); }
+    .callout .q-text em { color:var(--accent-700); font-style:normal; font-weight:500; }
+
+    /* qualitative legend */
+    .qlegend { display:flex; flex-wrap:wrap; gap:18px; margin-top:14px; font-size:13.5px; color:var(--muted); }
+    .qlegend span { display:inline-flex; align-items:center; gap:7px; }
+    .sw { width:14px; height:14px; border-radius:4px; flex:none; border:1px solid rgba(0,0,0,.08); }
+
+    /* ============================================================ BibTeX */
+    .bibtex-box { position:relative; background:#0f1219; border-radius:var(--radius); padding:24px 26px; box-shadow:var(--shadow); border:1px solid #1d2230; }
+    .bibtex-box pre { font-family:var(--font-mono); font-size:13.5px; color:#cdd3df; overflow-x:auto; line-height:1.7; margin:0; }
+    .bibtex-box .k { color:#ffb37a; }
+    .copy-btn {
+      position:absolute; top:16px; right:16px; background:#1d2230; color:#cdd3df; border:1px solid #2a3140;
+      font-family:var(--font-sans); font-size:13px; font-weight:600; padding:7px 13px; border-radius:8px; cursor:pointer;
+      display:inline-flex; align-items:center; gap:7px; transition: all .15s;
+    }
+    .copy-btn:hover { background:#2a3140; color:#fff; }
+    .copy-btn.copied { background:var(--good); color:#fff; border-color:var(--good); }
+
+    /* ============================================================ Footer */
+    .footer { border-top:1px solid var(--line); padding: 40px 0; text-align:center; color:var(--muted); font-size:14px; }
+    .footer a { color:var(--slatey); font-weight:600; }
+    .footer .heat-rule { height:4px; width:120px; margin:0 auto 24px; border-radius:3px; background:var(--heat); }
+
+    /* ============================================================ Fade-in */
+    .fade-in { opacity:0; transform: translateY(20px); transition: opacity .6s cubic-bezier(.2,.7,.3,1), transform .6s cubic-bezier(.2,.7,.3,1); }
+    .fade-in.visible { opacity:1; transform:none; }
+    @media (prefers-reduced-motion: reduce){ .fade-in{ opacity:1; transform:none; } html{ scroll-behavior:auto; } }
+
+    .note { font-size:13.5px; color:var(--muted); }
+    .divider { height:1px; background:var(--line); border:none; margin: 0; }
+  </style>
+</head>
+<body>
+
+  <!-- ===================== NAV ===================== -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <div class="nav-brand"><span class="nav-dot"></span> Visual Retrieval Heads</div>
+      <div class="nav-links">
+        <a href="#overview">Overview</a>
+        <a href="#method">Method</a>
+        <a href="#results">Results</a>
+        <a href="#demo">Demo</a>
+        <a href="#properties">Properties</a>
+        <a href="#heads">Head Map</a>
+        <a href="#bibtex">BibTeX</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===================== HERO ===================== -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-badge"><i class="fas fa-magnifying-glass-chart"></i> ICML 2026 Workshop · Mechanistic Interpretability</div>
+      <h1><span class="title-accent">Retrieval Heads</span> Meet Vision</h1>
+      <p class="subtitle">Uncovering How VLMs Locate and Extract Visual Information</p>
+
+      <div class="authors">
+        <span><a href="mailto:charlieppark@kaist.ac.kr">Chanho Park<sup>1</sup></a></span>
+        <span><a href="mailto:daehyeonchoi@kaist.ac.kr">Daehyeon Choi<sup>1</sup></a></span>
+        <span><a href="mailto:jihyunlee1027@gmail.com">Jihyun Lee<sup>2</sup></a></span>
+        <span><a href="mailto:mhsung@kaist.ac.kr">Minhyuk Sung<sup>1</sup></a></span>
+      </div>
+      <div class="affil">
+        <sup>1</sup> KAIST &nbsp;&middot;&nbsp; <sup>2</sup> Independent Researcher
+      </div>
+
+      <div class="hero-links">
+        <a class="btn" href="#" aria-disabled="true"><i class="fas fa-book"></i> arXiv <span class="note">(soon)</span></a>
+        <a class="btn" href="#" aria-disabled="true"><i class="fab fa-github"></i> Code <span class="note">(soon)</span></a>
+        <a class="btn" href="#heads"><i class="fas fa-table-cells"></i> Detected Heads</a>
+      </div>
+    </div>
+
+    <!-- Teaser -->
+    <div class="teaser fade-in">
+      <div class="teaser-frame">
+        <img src="static/figures/teaser.png" alt="Teaser: On visual grounding (left) and visual question answering (right), masking the Visual Retrieval Heads redirects attention away from the ground-truth referent. The model still produces a fluent, well-formatted answer, but it is delocalized and visually unfaithful.">
+      </div>
+      <p class="figcap"><strong>Figure 1. Visual Retrieval Heads mediate visual reference resolution in VLMs.</strong> We identify a sparse set of attention heads &mdash; <strong>Visual Retrieval Heads (VRHs)</strong> &mdash; that route visual evidence from the image region referred to by the text prompt to the output. On <strong>visual grounding</strong> (left), masking the VRHs steers prediction-stage attention away from the ground-truth referent, so the model outputs a delocalized box. The same heads, found <em>only</em> from grounding, also transfer to <strong>visual question answering</strong> (right): masking them removes attention to the referred object, yielding a fluent but visually unfaithful answer. Yellow boxes mark ground-truth referents; dashed ellipses mark where attention vanishes after VRH masking.</p>
+    </div>
+  </header>
+
+  <!-- ===================== TL;DR ===================== -->
+  <section class="tldr">
+    <div class="container">
+      <div class="tldr-box fade-in">
+        <div class="tldr-label">TL;DR</div>
+        <div class="tldr-text">
+          A tiny, fixed set of attention heads &mdash; just <strong>1.7&ndash;2.6%</strong> &mdash; is <em>causally</em> responsible for how a VLM locates a referred image region and routes that visual evidence to its answer. Mask these <strong>Visual Retrieval Heads</strong> and grounding collapses by up to <strong>~80 points</strong>; mask the same number of random heads and almost nothing happens.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== STATS ===================== -->
+  <section id="overview" style="padding-top:56px;">
+    <div class="container">
+      <div class="stats fade-in">
+        <div class="stat">
+          <div class="stat-num">1.7&ndash;2.6%</div>
+          <div class="stat-lab">of all attention heads</div>
+          <div class="stat-det">just 20 heads carry the behavior</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">&minus;80<span style="font-size:.6em">pts</span></div>
+          <div class="stat-lab">grounding accuracy drop</div>
+          <div class="stat-det">when the top-20 VRHs are masked</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num ink">4 × 12</div>
+          <div class="stat-lab">VLMs × benchmarks</div>
+          <div class="stat-det">5 grounding · 7 vision-QA</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num ink">5&ndash;10</div>
+          <div class="stat-lab">examples to detect them</div>
+          <div class="stat-det">a strong, repeatable signature</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ABSTRACT ===================== -->
+  <section class="soft" id="abstract">
+    <div class="container">
+      <div class="section-head fade-in">
+        <div class="eyebrow">Abstract</div>
+      </div>
+      <div class="abstract-body fade-in">
+        <p>Vision-language models (VLMs) can locate an image region referred to by a text prompt and route the corresponding visual evidence to the output, yet the internal mechanism behind this behavior is not understood. Inspired by <strong>retrieval heads</strong> in large language models, we ask whether VLMs contain an analogous mechanism for <em>visual</em> retrieval. We answer affirmatively by introducing <strong>Visual Retrieval Heads (VRHs)</strong>, a small subset of attention heads (about <strong>1.7&ndash;2.6%</strong>) that are causally responsible for grounding text descriptions to image regions.</p>
+        <p>To find them, we recast existing head-scoring methods under a unified design space over <span class="hl">query tokens, key aggregation, and cross-sample aggregation</span>. We then show that scoring attention from <em>output prediction tokens</em> with a <em>sum over the ground-truth referent region</em> most reliably identifies causal heads. Across four VLMs and five referring-expression benchmarks, masking only the top 20 VRHs reduces grounding accuracy by up to 80 percentage points, while masking the same number of random heads has little effect.</p>
+        <p>Beyond replicating the <em>causal&ndash;sparse&ndash;universal</em> triad established for text retrieval heads, VRHs exhibit several properties not previously reported: they <strong>generalize</strong> across visual reference tasks; they are <strong>functionally specific</strong>, preserving output format while corrupting localization; and they are <strong>architecturally shared</strong>, transferring causally across VLMs that share an LLM backbone but differ in vision encoder, projector, and instruction tuning.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== KEY IDEA ===================== -->
+  <section id="idea">
+    <div class="container">
+      <div class="section-head fade-in">
+        <div class="eyebrow">The Question</div>
+        <h2 class="section-title">A needle-in-a-haystack, but for vision</h2>
+        <p class="section-sub">In LLMs, a handful of <em>retrieval heads</em> route the right input token to the output during long-context recall. They are <strong>causal</strong>, <strong>sparse</strong>, and <strong>universal</strong>. Do VLMs have an analogue for finding the right <em>image region</em>?</p>
+      </div>
+
+      <div class="grid-3 fade-in" style="margin-bottom:26px;">
+        <div class="card">
+          <div class="card-ic red"><i class="fas fa-bullseye"></i></div>
+          <h4>Causal</h4>
+          <p>Ablating them collapses retrieval while leaving fluency intact &mdash; they are <em>necessary</em>, not merely correlated with attention.</p>
+        </div>
+        <div class="card">
+          <div class="card-ic amber"><i class="fas fa-compress"></i></div>
+          <h4>Sparse</h4>
+          <p>Fewer than a few percent of all heads carry the behavior; the rest can be perturbed with little effect.</p>
+        </div>
+        <div class="card">
+          <div class="card-ic ink"><i class="fas fa-layer-group"></i></div>
+          <h4>Universal</h4>
+          <p>They emerge across model families and scales, suggesting a shared internal mechanism rather than an idiosyncratic one.</p>
+        </div>
+      </div>
+
+      <p class="lead fade-in">Prior work stops short: <strong>OCR Heads</strong> and <strong>VERA</strong> retrieve text <em>rendered inside</em> images; <strong>Localization Heads</strong> reach general images but characterize heads only by attention <em>shape</em>, never verifying causal necessity. We close this gap &mdash; the first heads shown to be <em>causally</em> responsible for visual retrieval from <em>general</em> images.</p>
+
+      <div class="table-wrap fade-in" style="margin-top:28px;">
+        <table>
+          <thead>
+            <tr><th class="left">Specialized heads</th><th>Visual retrieval source</th><th>Causally validated?</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="left">Retrieval Heads <span class="note">(Wu et al.)</span></td><td>Text (long context)</td><td><span class="chip yes"><i class="fas fa-check"></i> yes</span></td></tr>
+            <tr><td class="left">QRHead</td><td>Text (long context)</td><td><span class="chip yes"><i class="fas fa-check"></i> yes</span></td></tr>
+            <tr><td class="left">OCR Heads</td><td>Rendered text in images</td><td><span class="chip yes"><i class="fas fa-check"></i> yes</span></td></tr>
+            <tr><td class="left">VERA</td><td>Visual documents</td><td><span class="chip yes"><i class="fas fa-check"></i> yes</span></td></tr>
+            <tr><td class="left">Localization Heads</td><td>General images</td><td><span class="chip no"><i class="fas fa-xmark"></i> no</span></td></tr>
+            <tr class="ours"><td class="left">Visual Retrieval Heads <span class="chip ours">Ours</span></td><td>General images</td><td><span class="chip yes"><i class="fas fa-check"></i> yes</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="tbl-note">Table 1. VRHs are the first attention heads shown to be causally responsible for visual retrieval from general images.</p>
+    </div>
+  </section>
+
+  <!-- ===================== METHOD ===================== -->
+  <section class="soft" id="method">
+    <div class="container">
+      <div class="section-head fade-in">
+        <div class="eyebrow">Method</div>
+        <h2 class="section-title">How to find the heads that matter</h2>
+        <p class="section-sub">We use <strong>referring-expression visual grounding</strong> as a probing task: given an image and an expression, the model must output a bounding box. The ground-truth box makes the retrieval target spatially explicit &mdash; it defines exactly which visual tokens the model should consult.</p>
+      </div>
+
+      <h3 class="sub-title fade-in">One formula behind every head-scoring method</h3>
+      <p class="fade-in">Prior methods all score a head by how strongly it attends from a set of <span style="color:var(--amber);font-weight:650">query tokens</span> to the <span style="color:var(--accent);font-weight:650">key tokens</span> in the evidence region. For grounding, we let the key tokens be the visual tokens overlapping the ground-truth box. Written in one form:</p>
+
+      <div class="formula fade-in">
+        <span class="eq">
+          <span class="dim">score</span><sub class="dim">(l,h)</sub> &nbsp;=&nbsp;
+          <span class="s">&#937;</span><sub class="s">s&isin;S</sub>
+          <span class="dim">[</span>
+          <span class="q">(1/|Q<sub>s</sub>|) &#931;</span><sub class="q">t&isin;Q<sub>s</sub></sub>
+          <span class="k">&#934;</span><sub class="k">j&isin;K<sub>s</sub></sub>
+          <span class="dim">&alpha;<sub>l,h</sub>(t, j)</span>
+          <span class="dim">]</span>
+        </span>
+        <div class="formula-legend">
+          <span><span class="lg-dot" style="background:#ffb37a"></span> Q<sub>s</sub> — query tokens</span>
+          <span><span class="lg-dot" style="background:#ff7a72"></span> &#934; — key aggregation over the region</span>
+          <span><span class="lg-dot" style="background:#7fd0ff"></span> &#937; — cross-sample aggregation</span>
+        </div>
+      </div>
+
+      <p class="fade-in" style="margin-top:26px;">Existing methods are just different choices along these three axes. So we enumerate every combination, mask each variant's top heads, and keep the one whose removal hurts grounding the most. <strong>Try it below</strong> &mdash; pick a setting and see which method it corresponds to.</p>
+
+      <!-- Interactive design space -->
+      <div class="ds fade-in" id="ds">
+        <div class="ds-controls">
+          <div class="ds-axis">
+            <div class="axis-label"><span class="axis-tick" style="background:#f0a91e"></span> Query tokens &nbsp;Q<sub>s</sub></div>
+            <div class="seg" data-axis="q">
+              <button data-val="in">Input prompt<span class="mono">Q<sup>in</sup></span></button>
+              <button data-val="out" class="on">Output prediction<span class="mono">Q<sup>out</sup></span></button>
+            </div>
+          </div>
+          <div class="ds-axis">
+            <div class="axis-label"><span class="axis-tick" style="background:#e2483d"></span> Key aggregation &nbsp;&#934;</div>
+            <div class="seg" data-axis="k">
+              <button data-val="argmax">Argmax indicator<span class="mono">&#934;<sup>argmax</sup></span></button>
+              <button data-val="sum" class="on">Region sum<span class="mono">&#934;<sup>sum</sup></span></button>
+            </div>
+          </div>
+          <div class="ds-axis">
+            <div class="axis-label"><span class="axis-tick" style="background:#5aa9e6"></span> Cross-sample &nbsp;&#937;</div>
+            <div class="seg" data-axis="s">
+              <button data-val="avg" class="on">Average<span class="mono">&#937;<sup>avg</sup></span></button>
+              <button data-val="freq">Voting / frequency<span class="mono">&#937;<sup>freq</sup></span></button>
+            </div>
+          </div>
+        </div>
+        <div class="ds-result">
+          <div class="ds-match">This setting corresponds to</div>
+          <div class="ds-name" id="dsName">VRH <span class="badge-ours">Ours · default</span></div>
+          <div class="ds-desc" id="dsDesc">Scoring attention from <em>output prediction tokens</em> with a <em>sum</em> over the referent region, averaged across samples. This is the variant whose top heads are most causally important for grounding.</div>
+          <div class="ds-coords" id="dsCoords">(Q<sup>out</sup>, &#934;<sup>sum</sup>, &#937;<sup>avg</sup>)</div>
+        </div>
+      </div>
+      <p class="tbl-note">Table 2 &amp; the design space. Different aggregation choices barely move results &mdash; but the <strong>query-token set matters a great deal</strong>: the strongest causal signal appears when the model is autoregressively <em>producing</em> the grounded answer, not when it merely encodes the prompt.</p>
+
+      <h3 class="sub-title fade-in" style="margin-top:42px;">Causal validation picks the winner</h3>
+      <div class="figure fade-in">
+        <img src="static/figures/causal_validation.png" alt="Bar charts across four VLMs. Masking the top-20 heads found by our default variant causes the largest accuracy drop relative to the unmasked model; flipping the query-token axis recovers the most accuracy, while flipping key or sample aggregation barely changes the result.">
+        <p class="figcap"><strong>Figure 2. Causal validation of head-scoring variants (RefCOCO, four VLMs).</strong> We mask each variant's top-20 heads and report grounding accuracy &mdash; <em>lower is better</em> (more causal). Our default <span class="mono">(Q<sup>out</sup>, &#934;<sup>sum</sup>, &#937;<sup>avg</sup>)</span> drives the largest drop. The <span class="mono">Q<sub>s</sub></span>, <span class="mono">&#934;</span>, and <span class="mono">&#937;</span> bars each flip one axis; &Delta; is the gap to <em>Ours</em>. Flipping the query set hurts most &mdash; output tokens are where the causal signal lives.</p>
+      </div>
+
+      <h3 class="sub-title fade-in" style="margin-top:34px;">How we mask a head</h3>
+      <p class="fade-in">To test a head's causal contribution, we zero the attention output of head <span class="mono">(l, h)</span> before it is added to the residual stream &mdash; leaving every other head, MLP, and layer-norm untouched. This is the same intervention used for text retrieval heads, so the results are directly comparable. All experiments run on a single 48&nbsp;GB GPU.</p>
+    </div>
+  </section>
+
+  <!-- ===================== RESULTS: causal / sparse / universal ===================== -->
+  <section id="results">
+    <div class="container">
+      <div class="section-head fade-in">
+        <div class="eyebrow">Results</div>
+        <h2 class="section-title">Causal, sparse, and universal</h2>
+        <p class="section-sub">Across four VLMs and three benchmark families, masking a few VRHs collapses grounding &mdash; far beyond random heads or heads found by prior methods.</p>
+      </div>
+
+      <h3 class="sub-title fade-in">VRHs beat every prior head set</h3>
+      <div class="figure fade-in">
+        <img src="static/figures/comparison.png" alt="Line plots of grounding accuracy versus number of masked heads k, for four VLMs. Masking VRHs (Ours) drops accuracy far faster than masking Retrieval Heads, OCR Heads, VERA, Localization Heads, or random heads.">
+        <p class="figcap"><strong>Figure 3. Comparison with existing specialized heads (RefCOCO).</strong> As <span class="mono">k</span> grows, masking the top-<span class="mono">k</span> VRHs degrades grounding far more sharply than masking heads from Retrieval Heads, OCR Heads, VERA, Localization Heads, or random selection &mdash; VRHs are a <em>distinct</em>, causally critical set.</p>
+      </div>
+
+      <h3 class="sub-title fade-in" style="margin-top:38px;">Universal across models &amp; benchmarks</h3>
+      <div class="figure fade-in">
+        <img src="static/figures/universality.png" alt="A grid of line plots: rows are RefCOCO-average, RefSpatialBench, and Toloka; columns are the four VLMs. In every panel, masking VRHs (red) sharply lowers accuracy while masking random heads (gray) stays flat.">
+        <p class="figcap"><strong>Figure 4. Universality of VRHs.</strong> Grounding accuracy after masking the top-<span class="mono">k</span> VRHs across four VLMs and three benchmark families (RefCOCO/+/g, RefSpatialBench, Toloka). Masking only a few VRHs (<span style="color:var(--accent);font-weight:650">red</span>) consistently causes large drops, while random heads (<span style="color:#777;font-weight:650">gray</span>) barely move &mdash; a shared head-level mechanism for visual grounding.</p>
+      </div>
+
+      <div class="grid-2 fade-in" style="margin-top:38px; align-items:center;">
+        <div>
+          <h3 class="sub-title">Concentrated in a sparse few</h3>
+          <p>Fewer than <strong>15%</strong> of heads receive any non-negligible score, and only <strong>0&ndash;4%</strong> score highly &mdash; yet masking those few is enough to break grounding. Visual retrieval is concentrated, not diffuse: it mirrors the sparse-but-causal organization of retrieval heads in LLMs.</p>
+        </div>
+        <div class="figure">
+          <img src="static/figures/sparsity.png" alt="Stacked horizontal bars for four VLMs showing the fraction of heads with score in (0,1e-3], (1e-3,5e-3], and greater than 5e-3. The vast majority of heads have negligible scores.">
+          <p class="figcap"><strong>Figure 5. Sparsity of VRH scores (RefCOCO).</strong> Distribution of head scores across the four VLMs; only a small fraction of heads score above <span class="mono">10&#8315;&#179;</span>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== INTERACTIVE DEMO ===================== -->
+  <section class="soft" id="demo">
+    <div class="container wide">
+      <div class="section-head center fade-in">
+        <div class="eyebrow">Try it</div>
+        <h2 class="section-title">Toggle the heads, watch the gaze move</h2>
+        <p class="section-sub">The evidence behind Figure&nbsp;1, made interactive. Switch between <strong>all heads</strong>, the <strong>top-20 VRHs alone</strong>, and <strong>everything except the VRHs</strong> &mdash; and watch where the model looks, and whether its box stays on target.</p>
+      </div>
+
+      <div class="demo fade-in">
+        <!-- stage -->
+        <div class="demo-stage">
+          <div class="demo-imgwrap" id="demoWrap" title="Click to step through the head sets">
+            <img id="demoImg" src="static/figures/demo/orange_all.jpg" alt="Attention map overlaid on the input image for the selected set of attention heads.">
+            <span class="demo-statebadge" id="demoBadge">Attention · all heads</span>
+            <span class="demo-clickhint"><i class="fas fa-hand-pointer"></i> click to step</span>
+          </div>
+          <div class="demo-expr"><span class="demo-ds-chip" id="demoDs">RefCOCO</span><span class="demo-expr-text" id="demoExpr"></span></div>
+        </div>
+
+        <!-- controls -->
+        <div class="demo-panel">
+          <div>
+            <div class="demo-flabel">Example</div>
+            <div class="demo-pills" id="demoPills">
+              <button data-ex="glass">&ldquo;glass top left of table&rdquo;</button>
+              <button data-ex="orange" class="on">&ldquo;left orange&rdquo;</button>
+              <button data-ex="sheep">&ldquo;part of sheep on the left&rdquo;</button>
+              <button data-ex="water">&ldquo;Where do we drink water?&rdquo; <span style="opacity:.55">· Toloka</span></button>
+            </div>
+          </div>
+
+          <div>
+            <div class="demo-flabel">Attention from</div>
+            <div class="seg demo-seg" id="demoSeg">
+              <button data-st="input">Input</button>
+              <button data-st="all" class="on">All heads</button>
+              <button data-st="vrh">VRHs only</button>
+              <button data-st="masked">VRHs removed</button>
+            </div>
+          </div>
+
+          <p class="demo-note" id="demoNote"></p>
+
+          <div class="demo-meter good" id="demoMeter">
+            <div class="demo-meter-top">
+              <span class="demo-meter-label" id="meterLabel">RefCOCO grounding accuracy</span>
+              <span class="demo-meter-val" id="meterVal">86.2%</span>
+            </div>
+            <div class="demo-meter-track"><div class="demo-meter-fill" id="meterFill"></div></div>
+            <div class="demo-meter-note" id="meterNote">All heads active &mdash; the full model.</div>
+          </div>
+
+          <div class="qlegend demo-legend">
+            <span><span class="sw" style="background:#1f9d57"></span> Ground truth</span>
+            <span><span class="sw" style="background:#d83a34"></span> Prediction</span>
+            <span><span class="sw" style="background:var(--heat)"></span> Attention</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="tbl-note" style="text-align:center; max-width:80ch; margin-left:auto; margin-right:auto;">Attention overlays are the paper's own qualitative examples (Qwen2.5-VL-7B). Accuracy figures are dataset-level (RefCOCO, Toloka) from the appendix: masking the top-20 VRHs &mdash; 2.6% of heads &mdash; collapses grounding, while masking the same number of <em>random</em> heads barely moves it.</p>
+    </div>
+  </section>
+
+  <!-- ===================== INTERACTIVE HEAD MAP ===================== -->
+  <section class="warm" id="heads">
+    <div class="container wide">
+      <div class="section-head center fade-in">
+        <div class="eyebrow">Where they live</div>
+        <h2 class="section-title">The Visual Retrieval Head map</h2>
+        <p class="section-sub">Every cell is one attention head, arranged by <strong>layer</strong> (rows) and <strong>head index</strong> (columns). The top-20 VRHs light up &mdash; clustered in the model's <em>middle</em> layers. Hover to inspect.</p>
+      </div>
+      <div class="headmap-wrap fade-in">
+        <div class="headmap-stage">
+          <div class="hm-yhint"><span>&#8593; early layers</span><span id="hmModel">Qwen2.5-VL-7B · RefCOCO</span><span>late layers &#8595;</span></div>
+          <div class="headmap" id="headmap" role="img" aria-label="Heatmap of attention heads by layer and head index; the top-20 Visual Retrieval Heads are highlighted with warm colors and concentrate in the middle layers."></div>
+          <div class="hm-axis"><span>head 0</span><span>head index &rarr;</span><span>head 27</span></div>
+        </div>
+        <div class="headmap-info">
+          <h4>Sparse &amp; localized</h4>
+          <p>For Qwen2.5-VL-7B, just <strong>20 of 784</strong> heads (2.6%) form the VRH set &mdash; and they sit in a tight band of middle layers (≈ 14&ndash;19), exactly where a reusable retrieval circuit would route evidence.</p>
+          <div class="hm-readout" id="hmReadout">Hover a glowing cell &hellip;</div>
+          <div class="hm-legend" style="margin-top:16px;"><span>rank&nbsp;20</span><div class="hm-bar"></div><span>rank&nbsp;1</span></div>
+          <p class="note" style="margin-top:14px;">Top-20 <span class="mono">(layer, head)</span> indices are taken verbatim from the paper's appendix.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PROPERTIES ===================== -->
+  <section id="properties">
+    <div class="container">
+      <div class="section-head fade-in">
+        <div class="eyebrow">What makes them special</div>
+        <h2 class="section-title">Four properties beyond the triad</h2>
+        <p class="section-sub">VRHs do more than replicate text retrieval heads. They reveal a general mechanism for <em>visual reference resolution</em>.</p>
+      </div>
+
+      <div class="grid-2 fade-in">
+        <div class="card prop"><div class="num">01</div>
+          <span class="tag">Generalize</span>
+          <h4>One mechanism, many tasks</h4>
+          <p>Discovered only from bounding-box grounding, the same heads remain causal on attribute, spatial, counting, vision-centric, and visual-math benchmarks &mdash; they implement visual <em>reference resolution</em> in general, not object grounding in particular.</p>
+        </div>
+        <div class="card prop"><div class="num">02</div>
+          <span class="tag">Functionally specific</span>
+          <h4>Fluent, but not factual</h4>
+          <p>Masking VRHs keeps the output's <em>format</em> valid &mdash; the box parses, the sentence reads well &mdash; but the localization is wrong. It selectively breaks <em>where the model looks</em>, the visual analogue of the LLM failure mode.</p>
+        </div>
+        <div class="card prop"><div class="num">03</div>
+          <span class="tag">Architecturally shared</span>
+          <h4>A reusable backbone circuit</h4>
+          <p>VRHs found in one VLM remain causal when masked at the same indices in another VLM that shares the LLM backbone &mdash; even with a different vision encoder, projector, and instruction tuning.</p>
+        </div>
+        <div class="card prop"><div class="num">04</div>
+          <span class="tag">Stably detectable</span>
+          <h4>A handful of examples suffice</h4>
+          <p>The same top heads emerge from different output-token choices and from as few as <strong>5&ndash;10</strong> annotated grounding examples &mdash; a strong, repeatable signature rather than a weak average.</p>
+        </div>
+      </div>
+
+      <!-- Property 1: generalization table -->
+      <h3 class="sub-title fade-in" style="margin-top:48px;">① Generalization across visual reference tasks</h3>
+      <p class="fade-in">Masking the top-20 VRHs <em>detected on RefCOCO</em> degrades performance on seven held-out vision-QA benchmarks across all four VLMs, while random-head masking does almost nothing.</p>
+      <div class="table-wrap fade-in" style="margin-top:18px;">
+        <table>
+          <thead>
+            <tr>
+              <th class="left">Model</th><th class="left">Condition</th>
+              <th>VAW</th><th>Spatial457</th><th>SpatialRGPT</th><th>CV-Bench</th><th>MMStar</th><th>CountBenchQA</th><th>MathVista</th>
+            </tr>
+          </thead>
+          <tbody id="genTable"><!-- filled by JS --></tbody>
+        </table>
+      </div>
+      <p class="tbl-note">Table 3. Cross-task generalization. <span class="delta-bad">Red</span> = drop under VRH masking (k=20). Random masking (k=20) stays near the baseline.</p>
+
+      <!-- Property 2: functional specificity + qualitative -->
+      <h3 class="sub-title fade-in" style="margin-top:48px;">② Functional specificity: the failure has a signature</h3>
+      <div class="grid-2 fade-in" style="align-items:center;">
+        <div class="figure">
+          <img src="static/figures/specificity.png" alt="Three panels: (a) masking VRHs increases 'mislocation' while 'parse failure' stays rare; (b) output-token choice barely matters — both VRH variants drop to ~7% while random heads stay at 86%; (c) as few as 5 detection samples recover the same heads.">
+          <p class="figcap"><strong>Figure 7.</strong> <strong>(a)</strong> Under VRH masking, boxes stay syntactically valid but become <em>mislocated</em>; parse failures stay rare. <strong>(b)</strong> A single random output token or all output tokens both yield ~7% accuracy when masked (random heads: ~86%). <strong>(c)</strong> 5&ndash;200 detection samples recover the same heads.</p>
+        </div>
+        <div>
+          <div class="callout">
+            <i class="fas fa-quote-left q-ic"></i>
+            <div class="q-text">Masking VRHs preserves the surface form of the output but corrupts the <em>factuality</em> of its visual evidence &mdash; a syntactically perfect box around the wrong thing.</div>
+          </div>
+          <p style="margin-top:20px;">This is exactly the "fluent-but-not-factual" mode reported for text retrieval heads, now observed in vision: the model keeps answering confidently while no longer <em>looking</em> at the referent.</p>
+        </div>
+      </div>
+
+      <div class="figure fade-in" style="margin-top:28px;">
+        <img src="static/figures/qual_grounding_sf.png" alt="Five grounding examples. Columns: input, attention over all heads (concentrated on the referent with the predicted box on target), attention over the top-20 VRHs alone (still concentrated), and the model with the VRHs masked (attention scatters and the predicted box flies off the referent).">
+        <p class="figcap"><strong>Attention maps on visual grounding.</strong> Left to right: input, <strong>all heads</strong>, the <strong>top-20 VRHs only</strong>, and the model with the <strong>VRHs masked</strong>. Attention concentrates on the referent under all heads and is reproduced by the VRHs alone &mdash; but once the VRHs are masked it scatters, and the predicted box (red) flies off the ground truth (green).</p>
+        <div class="qlegend">
+          <span><span class="sw" style="background:#1f9d57"></span> Ground-truth box</span>
+          <span><span class="sw" style="background:#d83a34"></span> Predicted box</span>
+          <span><span class="sw" style="background:var(--heat)"></span> Attention mass</span>
+        </div>
+      </div>
+
+      <div class="figure fade-in" style="margin-top:22px;">
+        <img src="static/figures/qual_vqa_sf.png" alt="Four visual question answering examples. Each panel: input with the ground-truth region in green, top-20 VRH attention, all-heads attention, and attention after masking the VRHs. With all heads the answer is correct; with the VRHs masked the answer flips to a fluent but wrong one.">
+        <p class="figcap"><strong>Attention maps on visual question answering.</strong> Each panel shows the input (<span style="color:#1f9d57;font-weight:650">green</span> = ground-truth region), the top-20 VRH attention, all-heads attention, and attention after masking the VRHs. Keep the VRHs and the answer is correct; mask them and attention drifts off the evidence, flipping the answer to a fluent but visually unfaithful one.</p>
+      </div>
+
+      <!-- Property 3: architectural sharing -->
+      <h3 class="sub-title fade-in" style="margin-top:48px;">③ Shared across same-backbone VLMs</h3>
+      <div class="figure fade-in">
+        <img src="static/figures/architecture_shared.png" alt="Top row: layer-head score maps for same-backbone VLM pairs look strikingly similar, with high top-20 overlap and Spearman correlation. Bottom row: masking the VRHs found in one model, at the same indices in its same-backbone sibling, causes a large accuracy drop.">
+        <p class="figcap"><strong>Figure 6. Detection consistency across same-backbone VLMs.</strong> <strong>Top:</strong> layer-head score maps line up across same-backbone pairs (top-20 overlap up to 18/20; Spearman ρ ≈ 0.9). <strong>Bottom:</strong> transferring one model's top-<span class="mono">k</span> VRHs to its sibling (same indices) still collapses grounding &mdash; the circuit lives in the language backbone.</p>
+      </div>
+
+      <!-- Application: DPO -->
+      <h3 class="sub-title fade-in" style="margin-top:48px;">Bonus: the heads are actionable</h3>
+      <div class="grid-2 fade-in" style="align-items:center;">
+        <div>
+          <p>VRHs aren't just an analytic lens &mdash; they're an optimization target. Using a <strong>VRH-masked</strong> model as the negative policy for <strong>direct preference optimization</strong> (DPO) concentrates exactly the failure we want to suppress, yielding consistent grounding gains over a random-head-masked control.</p>
+          <p class="note">Modest but consistent: about <strong>+0.78</strong> points on average across three grounding benchmarks &mdash; an initial demonstration that VRHs are a mechanistic substrate that can be directly optimized.</p>
+        </div>
+        <div class="figure">
+          <img src="static/figures/dpo.png" alt="DPO accuracy comparison across three benchmarks: using VRH-dropping to build negative responses yields stronger gains than random-head dropping.">
+          <p class="figcap"><strong>Figure A3. DPO with VRH-based negatives.</strong> Perturbing causally relevant heads gives a more informative preference signal than random-head dropping.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TAKEAWAYS ===================== -->
+  <section class="soft" id="takeaways">
+    <div class="container">
+      <div class="section-head fade-in">
+        <div class="eyebrow">In one breath</div>
+        <h2 class="section-title">What we learned</h2>
+      </div>
+      <div class="grid-3 fade-in">
+        <div class="card">
+          <div class="card-ic red"><i class="fas fa-crosshairs"></i></div>
+          <h4>VLMs route vision through a few heads</h4>
+          <p>A sparse set of attention heads carries text-referred visual evidence to the output &mdash; and removing them, alone, breaks grounding.</p>
+        </div>
+        <div class="card">
+          <div class="card-ic amber"><i class="fas fa-shuffle"></i></div>
+          <h4>The mechanism is general &amp; portable</h4>
+          <p>The same heads serve attributes, spatial reasoning, counting, and visual math, and transfer across same-backbone VLMs.</p>
+        </div>
+        <div class="card">
+          <div class="card-ic ink"><i class="fas fa-screwdriver-wrench"></i></div>
+          <h4>A practical handle on faithfulness</h4>
+          <p>Cheap to detect (5&ndash;10 examples) and directly optimizable &mdash; a lever for diagnosing and improving visual grounding.</p>
+        </div>
+      </div>
+      <p class="lead fade-in" style="margin-top:30px;"><strong>Limitations &amp; what's next.</strong> Our signal is attention-based: it captures <em>where</em> evidence is routed from, not <em>what</em> is read out. Combining VRH detection with activation patching or causal mediation, and extending beyond single images to multi-image, video, and interleaved inputs, are natural next steps &mdash; with applications to visual-context selection and multimodal cache compression.</p>
+    </div>
+  </section>
+
+  <!-- ===================== BIBTEX ===================== -->
+  <section id="bibtex">
+    <div class="container">
+      <div class="section-head fade-in">
+        <div class="eyebrow">Citation</div>
+        <h2 class="section-title">BibTeX</h2>
+      </div>
+      <div class="bibtex-box fade-in">
+        <button class="copy-btn" id="copyBtn" onclick="copyBibtex()"><i class="fas fa-copy"></i> Copy</button>
+        <pre id="bibtex"><span class="k">@inproceedings</span>{park2026retrievalheads,
+  title     = {Retrieval Heads Meet Vision: Uncovering How VLMs
+               Locate and Extract Visual Information},
+  author    = {Park, Chanho and Choi, Daehyeon and Lee, Jihyun
+               and Sung, Minhyuk},
+  booktitle = {ICML 2026 Workshop on Mechanistic Interpretability},
+  year      = {2026}
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="heat-rule"></div>
+      <p>
+        <strong style="color:var(--ink)">Retrieval Heads Meet Vision</strong> &middot; ICML 2026 Workshop on Mechanistic Interpretability<br>
+        Project page design inspired by academic templates including
+        <a href="https://nerfies.github.io" target="_blank" rel="noopener">Nerfies</a> and
+        <a href="https://distill.pub" target="_blank" rel="noopener">Distill</a>.
+      </p>
+    </div>
+  </footer>
+
+  <div class="hm-tip" id="hmTip"></div>
+
+  <!-- ===================== JS ===================== -->
+  <script>
+    /* ---- nav: scroll shadow + active section ---- */
+    const nav = document.getElementById('nav');
+    const navLinks = [...document.querySelectorAll('.nav-links a[href^="#"]')];
+    const sections = navLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+    function onScroll(){
+      nav.classList.toggle('scrolled', window.scrollY > 8);
+      let cur = null;
+      for (const s of sections){ if (s.getBoundingClientRect().top <= 120) cur = s; }
+      navLinks.forEach(a => a.classList.toggle('active', cur && a.getAttribute('href') === '#'+cur.id));
+    }
+    window.addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+    /* ---- fade-in ---- */
+    const io = new IntersectionObserver((es)=>{
+      es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('visible'); io.unobserve(e.target);} });
+    }, {threshold:.08, rootMargin:'0px 0px -40px 0px'});
+    document.querySelectorAll('.fade-in').forEach(el=>io.observe(el));
+
+    /* ---- copy bibtex ---- */
+    function copyBibtex(){
+      const t = document.getElementById('bibtex').innerText;
+      navigator.clipboard.writeText(t).then(()=>{
+        const b = document.getElementById('copyBtn');
+        b.innerHTML = '<i class="fas fa-check"></i> Copied!'; b.classList.add('copied');
+        setTimeout(()=>{ b.innerHTML='<i class="fas fa-copy"></i> Copy'; b.classList.remove('copied'); }, 1900);
+      });
+    }
+
+    /* ---- interactive design space ---- */
+    const dsState = { q:'out', k:'sum', s:'avg' };
+    const dsMap = {
+      'out-argmax-avg': { name:'Retrieval Heads · OCR Heads', ours:false,
+        desc:'Output tokens, an argmax indicator for whether the top-attended key lies in the region, averaged across samples — the recipe behind text Retrieval Heads and OCR Heads.' },
+      'out-sum-avg':    { name:'VRH', ours:true,
+        desc:'Scoring attention from <em>output prediction tokens</em> with a <em>sum</em> over the referent region, averaged across samples. This is the variant whose top heads are most causally important for grounding. (VERA uses the same aggregation, but only over rendered-text regions in documents; we score the referent’s visual tokens in general images and validate causally.)' },
+      'in-sum-avg':     { name:'QRHead', ours:false,
+        desc:'Input prompt tokens with a region-sum, averaged across samples — the QRHead recipe, which reads the signal from the prompt rather than the generated answer.' },
+      'in-argmax-freq': { name:'Localization Heads (≈)', ours:false,
+        desc:'Input tokens with selection-frequency (voting). Localization Heads live here, but score heads by the <em>spatial entropy</em> of attention rather than by key aggregation — and are never causally validated.' },
+      'in-sum-freq':    { name:'Localization Heads (≈)', ours:false,
+        desc:'Input tokens with selection-frequency (voting). Localization Heads live in this corner, scoring by attention <em>shape</em> (spatial entropy) instead of causal effect.' },
+    };
+    function dsKey(){ return dsState.q+'-'+dsState.k+'-'+dsState.s; }
+    function subMono(v){
+      const m = { in:'Q<sup>in</sup>', out:'Q<sup>out</sup>', argmax:'Φ<sup>argmax</sup>', sum:'Φ<sup>sum</sup>', avg:'Ω<sup>avg</sup>', freq:'Ω<sup>freq</sup>' };
+      return m[v]||v;
+    }
+    function renderDS(){
+      const hit = dsMap[dsKey()];
+      const nameEl = document.getElementById('dsName');
+      const descEl = document.getElementById('dsDesc');
+      const coordEl = document.getElementById('dsCoords');
+      coordEl.innerHTML = '(' + subMono(dsState.q) + ', ' + subMono(dsState.k) + ', ' + subMono(dsState.s) + ')';
+      if (hit){
+        nameEl.innerHTML = hit.name + (hit.ours ? ' <span class="badge-ours">Ours · default</span>' : '');
+        descEl.innerHTML = hit.desc;
+      } else {
+        nameEl.innerHTML = '<span style="color:var(--muted)">Unexplored combination</span>';
+        descEl.innerHTML = 'No prior method uses this exact corner of the design space. We still evaluate it — but it is not where the strongest causal heads emerge.';
+      }
+    }
+    document.querySelectorAll('.ds .seg').forEach(seg=>{
+      const axis = seg.dataset.axis;
+      seg.querySelectorAll('button').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          seg.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+          btn.classList.add('on');
+          dsState[axis] = btn.dataset.val;
+          renderDS();
+        });
+      });
+    });
+    renderDS();
+
+    /* ---- VRH head map (Qwen2.5-VL-7B, RefCOCO; 28 layers x 28 heads) ---- */
+    const LAYERS = 28, HEADS = 28;
+    // top-20 (layer, head), ordered by descending score (rank 1 = strongest)
+    const TOP20 = [[19,17],[16,0],[18,16],[16,20],[19,22],[19,20],[16,1],[19,23],[19,15],[17,18],
+                   [16,7],[14,11],[14,16],[16,6],[16,17],[19,26],[19,19],[14,23],[17,14],[18,15]];
+    // hot colormap stops (rank 1 hottest -> rank 20 cooler)
+    function heat(t){ // t in [0,1], 1 = hottest
+      const stops = [[36,16,8],[124,29,18],[216,58,52],[239,142,31],[255,215,137]];
+      const x = Math.max(0,Math.min(1,t))*(stops.length-1);
+      const i = Math.floor(x), f = x-i, a = stops[i], b = stops[Math.min(i+1,stops.length-1)];
+      const c = a.map((v,k)=>Math.round(v+(b[k]-v)*f));
+      return `rgb(${c[0]},${c[1]},${c[2]})`;
+    }
+    const rankOf = {};
+    TOP20.forEach((lh,i)=> rankOf[lh[0]+'-'+lh[1]] = i+1);
+    const grid = document.getElementById('headmap');
+    grid.style.gridTemplateColumns = `repeat(${HEADS}, 1fr)`;
+    const tip = document.getElementById('hmTip');
+    const readout = document.getElementById('hmReadout');
+    for (let l=0; l<LAYERS; l++){
+      for (let h=0; h<HEADS; h++){
+        const cell = document.createElement('div');
+        cell.className = 'hm-cell';
+        const r = rankOf[l+'-'+h];
+        if (r){
+          const t = 1 - (r-1)/ (TOP20.length-1); // rank1 -> 1
+          cell.style.background = heat(0.18 + 0.82*t);
+          cell.classList.add('vrh');
+          cell.dataset.info = `layer ${l}, head ${h} · rank #${r}`;
+        } else {
+          cell.dataset.info = `layer ${l}, head ${h} · not a VRH`;
+        }
+        cell.addEventListener('mousemove', (e)=>{
+          tip.textContent = cell.dataset.info;
+          tip.style.left = (e.clientX + 12) + 'px';
+          tip.style.top = (e.clientY + 12) + 'px';
+          tip.style.opacity = 1;
+        });
+        cell.addEventListener('mouseenter', ()=>{
+          if (r) readout.innerHTML = `<b>(${l}, ${h})</b> — VRH rank #${r} of 20`;
+          else readout.textContent = `(${l}, ${h}) — not a retrieval head`;
+        });
+        cell.addEventListener('mouseleave', ()=>{ tip.style.opacity = 0; });
+        grid.appendChild(cell);
+      }
+    }
+
+    /* ---- Table 3: cross-task generalization ---- */
+    const GEN = {
+      'Qwen2.5-VL-7B': {
+        base:[63.8,68.2,36.1,75.1,58.3,83.9,71.5],
+        rnd :[[63.7,-0.1],[67.2,-1.0],[39.5,3.4],[71.9,-3.2],[56.8,-1.5],[84.1,0.2],[72.0,0.5]],
+        vrh :[[40.5,-23.3],[36.0,-32.2],[21.8,-14.3],[53.3,-21.8],[47.9,-10.4],[61.5,-22.4],[61.7,-9.8]] },
+      'Qwen3-VL-8B': {
+        base:[74.8,78.2,50.8,87.6,63.0,88.4,66.5],
+        rnd :[[74.3,-0.5],[76.4,-1.8],[46.2,-4.6],[87.1,-0.5],[63.3,0.3],[89.6,1.2],[69.4,2.9]],
+        vrh :[[51.0,-23.8],[36.9,-41.3],[22.9,-27.9],[68.7,-18.9],[47.7,-15.3],[74.5,-13.9],[43.0,-23.5]] },
+      'InternVL3-8B': {
+        base:[73.1,73.1,50.0,85.9,67.9,81.3,80.0],
+        rnd :[[71.9,-1.2],[72.4,-0.7],[49.6,-0.4],[86.7,0.8],[67.7,-0.2],[81.9,0.6],[79.8,-0.2]],
+        vrh :[[47.6,-25.5],[37.3,-35.8],[38.0,-12.0],[69.3,-16.6],[47.6,-20.3],[60.1,-21.2],[65.7,-14.3]] },
+      'InternVL3.5-8B': {
+        base:[72.6,66.3,50.4,80.3,64.9,78.0,78.9],
+        rnd :[[72.0,-0.6],[64.3,-2.0],[51.5,1.1],[82.8,2.5],[64.4,-0.5],[79.0,1.0],[79.4,0.5]],
+        vrh :[[54.4,-18.2],[39.3,-27.0],[41.0,-9.4],[68.6,-11.7],[51.5,-13.4],[65.2,-12.8],[66.3,-12.6]] },
+    };
+    function dcell(v, d){
+      const sign = d>0 ? '+' : '';
+      const cls = (d<=-3) ? 'delta-bad' : (Math.abs(d)<=2 ? 'delta-flat' : 'delta-bad');
+      return `${v.toFixed(1)} <span class="${cls}">(${sign}${d.toFixed(1)})</span>`;
+    }
+    const gt = document.getElementById('genTable');
+    let html = '';
+    Object.keys(GEN).forEach((model, mi)=>{
+      const d = GEN[model];
+      const sep = mi>0 ? ' group-sep' : '';
+      html += `<tr class="${sep}"><td class="row-label" rowspan="3">${model}</td><td class="left">Baseline <span class="note">(k=0)</span></td>${d.base.map(v=>`<td>${v.toFixed(1)}</td>`).join('')}</tr>`;
+      html += `<tr><td class="left">Random <span class="note">(k=20)</span></td>${d.rnd.map(x=>`<td><span class="delta-flat">${x[0].toFixed(1)}</span></td>`).join('')}</tr>`;
+      html += `<tr class="ours"><td class="left">VRH <span class="chip ours">k=20</span></td>${d.vrh.map(x=>`<td>${dcell(x[0],x[1])}</td>`).join('')}</tr>`;
+    });
+    gt.innerHTML = html;
+
+    /* ---- interactive masking demo ("toggle the heads") ---- */
+    const DEMO = {
+      glass:  { ds:'RefCOCO', expr:'glass top left of table',   full:86.2, mask:7.5, rand:86.1 },
+      orange: { ds:'RefCOCO', expr:'left orange',               full:86.2, mask:7.5, rand:86.1 },
+      sheep:  { ds:'RefCOCO', expr:'part of sheep on the left', full:86.2, mask:7.5, rand:86.1 },
+      water:  { ds:'Toloka',  expr:'Where do we drink water?',  full:67.4, mask:1.1, rand:67.2 },
+    };
+    const HEADS_TOTAL = 784; // Qwen2.5-VL-7B
+    const ST_ORDER = ['input','all','vrh','masked'];
+    const ST_BADGE = { input:'Input image', all:'Attention · all heads', vrh:'Attention · top-20 VRHs', masked:'Attention · VRHs masked (model ablated)' };
+    let curEx = 'orange', curSt = 'all';
+
+    const dWrap = document.getElementById('demoWrap');
+    const dImg  = document.getElementById('demoImg');
+    const demoPath = (ex,st)=> `static/figures/demo/${ex}_${st}.jpg`;
+    ST_ORDER.forEach(st=>Object.keys(DEMO).forEach(ex=>{ const i=new Image(); i.src=demoPath(ex,st); })); // preload
+
+    function showDemoImage(ex,st){
+      const src = demoPath(ex,st), pre = new Image();
+      const swap = ()=>{ dImg.src = src; dImg.style.opacity='1';
+        if (pre.naturalWidth) dWrap.style.aspectRatio = pre.naturalWidth+' / '+pre.naturalHeight; };
+      dImg.style.opacity = '0.3';
+      pre.onload = swap; pre.src = src;
+      if (pre.complete) swap();
+    }
+    function demoNote(ex,st){
+      const d = DEMO[ex], pct=(20/HEADS_TOTAL*100).toFixed(1);
+      if (st==='input')  return `The model must localize <em>&ldquo;${d.expr}&rdquo;</em>. <span class="b-gt">Green</span> marks the ground-truth region.`;
+      if (st==='all')    return `Attention over <strong>all heads</strong> concentrates on the referent &mdash; the predicted box <span class="b-pred">(red)</span> lands on the ground truth <span class="b-gt">(green)</span>.`;
+      if (st==='vrh')    return `Just the top-20 <strong>Visual Retrieval Heads</strong> &mdash; <strong>${pct}%</strong> of all heads &mdash; and their attention <em>alone</em> still pinpoints the referent.`;
+      return `Now <strong>mask</strong> those 20 heads: attention <strong>scatters off the referent</strong> and the predicted box <span class="b-pred">(red)</span> flies away from the ground truth <span class="b-gt">(green)</span> &mdash; a fluent, well-formed, but mislocalized answer.`;
+    }
+    function demoMeter(ex,st){
+      const d = DEMO[ex];
+      if (st==='input')  return { show:false };
+      if (st==='masked') return { show:true, val:d.mask, tone:'bad',  label:`${d.ds} grounding accuracy`, note:`Top-20 VRHs masked. Masking 20 <em>random</em> heads instead: ${d.rand.toFixed(1)}%.` };
+      if (st==='vrh')    return { show:true, val:d.full, tone:'good', label:`${d.ds} grounding accuracy`, note:`Model still fully intact &mdash; 20 / ${HEADS_TOTAL} heads produce this attention.` };
+      return { show:true, val:d.full, tone:'good', label:`${d.ds} grounding accuracy`, note:'All heads active — the full model.' };
+    }
+    function renderDemo(){
+      const d = DEMO[curEx];
+      showDemoImage(curEx, curSt);
+      document.getElementById('demoBadge').textContent = ST_BADGE[curSt];
+      document.getElementById('demoDs').textContent = d.ds;
+      document.getElementById('demoExpr').innerHTML = `<i class="fas fa-quote-left"></i>${d.expr}`;
+      document.querySelectorAll('#demoSeg button').forEach(b=> b.classList.toggle('on', b.dataset.st===curSt));
+      document.querySelectorAll('#demoPills button').forEach(b=> b.classList.toggle('on', b.dataset.ex===curEx));
+      document.getElementById('demoNote').innerHTML = demoNote(curEx, curSt);
+      const m = demoMeter(curEx, curSt), meter = document.getElementById('demoMeter'), fill = document.getElementById('meterFill');
+      if (!m.show){
+        meter.style.opacity = .4; meter.classList.remove('bad'); meter.classList.add('good');
+        document.getElementById('meterLabel').textContent = 'Referring-expression localization';
+        document.getElementById('meterVal').textContent = '—';
+        fill.style.width = '0%';
+        document.getElementById('meterNote').innerHTML = 'Pick a head set to see its effect on accuracy.';
+        return;
+      }
+      meter.style.opacity = 1;
+      meter.classList.toggle('bad', m.tone==='bad'); meter.classList.toggle('good', m.tone==='good');
+      document.getElementById('meterLabel').textContent = m.label;
+      document.getElementById('meterVal').textContent = m.val.toFixed(1)+'%';
+      fill.style.width = Math.max(2, m.val)+'%';
+      document.getElementById('meterNote').innerHTML = m.note;
+    }
+    document.querySelectorAll('#demoSeg button').forEach(b=> b.addEventListener('click', ()=>{ curSt=b.dataset.st; renderDemo(); }));
+    document.querySelectorAll('#demoPills button').forEach(b=> b.addEventListener('click', ()=>{ curEx=b.dataset.ex; renderDemo(); }));
+    dWrap.addEventListener('click', ()=>{ curSt = ST_ORDER[(ST_ORDER.indexOf(curSt)+1)%ST_ORDER.length]; renderDemo(); });
+    renderDemo();
+  </script>
+</body>
+</html>
