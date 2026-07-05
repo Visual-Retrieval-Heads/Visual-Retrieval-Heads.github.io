@@ -20,7 +20,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23d83a34'/><circle cx='50' cy='50' r='14' fill='white'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=STIX+Two+Math&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     /* ============================================================
@@ -52,6 +52,7 @@
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       --font-serif: 'Source Serif 4', Georgia, serif;
       --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+      --font-math: 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', 'Times New Roman', serif;
 
       --maxw: 920px;
       --maxw-wide: 1140px;
@@ -188,6 +189,8 @@
     em { font-style: italic; }
     strong { font-weight: 650; color: var(--ink); }
     .mono { font-family:var(--font-mono); font-size:.92em; }
+    .math-ref { font-family:var(--font-math); font-size:1.08em; font-weight:400; letter-spacing:0; }
+    .math-ref sub, .math-ref sup { font-size:.72em; line-height:0; }
     .hl { background: linear-gradient(transparent 62%, #fcdcb0 62%); padding:0 1px; }
 
     /* ============================================================ TL;DR */
@@ -317,17 +320,21 @@
 
     /* ============================================================ Method: formula + design space */
     .formula {
-      background:#0f1219; color:#e7e9ee; border-radius:var(--radius); padding:30px 26px; text-align:center;
-      font-family:var(--font-mono); overflow-x:auto; box-shadow: var(--shadow); border:1px solid #1d2230;
+      background:#0f1219; color:#f2f3f6; border-radius:var(--radius); padding:32px 26px 28px; text-align:center;
+      font-family:var(--font-math); overflow-x:auto; box-shadow:var(--shadow); border:1px solid #1d2230;
     }
-    .formula .eq { font-size: clamp(15px, 2.3vw, 21px); line-height:1.7; white-space:nowrap; display:inline-block; }
+    .formula-equation { display:flex; justify-content:center; width:max-content; min-width:100%; }
+    .formula .eq {
+      display:block; width:max-content; margin:0; padding:2px 8px 8px;
+      font-family:var(--font-math); font-size:clamp(20px, 2.7vw, 28px); font-weight:400;
+    }
     .formula .q { color:#ffb37a; }      /* query set */
     .formula .k { color:#ff7a72; }      /* key agg */
     .formula .s { color:#7fd0ff; }      /* sample agg */
-    .formula .dim { color:#8b93a7; }
-    .formula sub { font-size:.7em; }
-    .formula-legend { display:flex; flex-wrap:wrap; gap:18px; justify-content:center; margin-top:20px; font-size:13.5px; }
+    .formula .dim { color:#c5cad5; }
+    .formula-legend { display:flex; flex-wrap:wrap; gap:18px; justify-content:center; margin-top:18px; font-size:13.5px; }
     .formula-legend span { display:inline-flex; align-items:center; gap:7px; color:#aab2c2; font-family:var(--font-sans); }
+    .formula-legend .math-ref { font-size:1.18em; color:#e7e9ee; }
     .lg-dot { width:11px; height:11px; border-radius:3px; }
 
     /* design-space picker */
@@ -347,15 +354,15 @@
       flex:1; border:none; background:transparent; font-family:var(--font-sans); font-size:13.5px; font-weight:600;
       color:var(--slatey); padding:9px 8px; border-radius:7px; cursor:pointer; transition: all .15s; line-height:1.25;
     }
-    .seg button .mono { font-size:11.5px; display:block; color:var(--faint); margin-top:2px; font-weight:500; }
+    .seg button .mono, .seg button .math-ref { font-size:12.5px; display:block; color:var(--faint); margin-top:3px; font-weight:400; }
     .seg button.on { background:#fff; color:var(--ink); box-shadow: var(--shadow-sm); }
-    .seg button.on .mono { color:var(--accent); }
+    .seg button.on .mono, .seg button.on .math-ref { color:var(--accent); }
     .ds-result { padding:26px; display:flex; flex-direction:column; justify-content:center; background:var(--bg-soft); }
     .ds-match { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
     .ds-name { font-size:23px; font-weight:800; color:var(--ink); letter-spacing:-.01em; line-height:1.15; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .ds-name .badge-ours { font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#fff; background:var(--accent); padding:3px 9px; border-radius:999px; }
     .ds-desc { font-size:14.5px; color:var(--body); margin-top:12px; }
-    .ds-coords { font-family:var(--font-mono); font-size:12.5px; color:var(--muted); margin-top:14px; padding-top:14px; border-top:1px dashed var(--line-2); }
+    .ds-coords { font-family:var(--font-math); font-size:15px; color:var(--muted); margin-top:14px; padding-top:14px; border-top:1px dashed var(--line-2); }
 
     /* ============================================================ Head map */
     .headmap-wrap { display:grid; grid-template-columns: 1fr 280px; gap:30px; align-items:center; }
@@ -380,6 +387,27 @@
     }
     .hm-readout { font-family:var(--font-mono); font-size:13px; color:#aab2c2; margin-top:6px; min-height:1.2em; }
     .hm-readout b { color:#ffb37a; }
+    .hm-mask-demo { margin-top:34px; border-top:1px solid rgba(0,0,0,.1); padding-top:26px; }
+    .hmm-head h4 { font-size:19px; font-weight:700; color:var(--ink); margin-bottom:6px; }
+    .hmm-head p { font-size:14.5px; color:var(--body); max-width:84ch; margin-bottom:18px; }
+    .hmm-body { display:grid; grid-template-columns:1fr 380px; gap:28px; align-items:start; }
+    @media (max-width:820px){ .hmm-body { grid-template-columns:1fr; } }
+    .hmm-flabel { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:#8a93a3; margin-bottom:8px; }
+    .hmm-pills { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:16px; }
+    .hmm-pills button { border:1px solid rgba(0,0,0,.16); background:#fff; border-radius:999px; padding:6px 12px; font-size:12px; cursor:pointer; color:var(--ink); max-width:24ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .hmm-pills button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+    .hmm-ctrls { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+    .hmm-ctrls .btn { border:1px solid rgba(0,0,0,.16); background:#fff; border-radius:8px; padding:7px 12px; font-size:13px; font-weight:600; cursor:pointer; color:var(--ink); }
+    .hmm-ctrls .btn.on { background:#d83a34; color:#fff; border-color:#d83a34; }
+    .hmm-readout { font-size:13.5px; color:var(--body); line-height:1.6; }
+    .hmm-readout b { color:var(--ink); }
+    .hmm-imgwrap { position:relative; width:100%; border-radius:12px; overflow:hidden; background:#0f1219; box-shadow:var(--shadow); }
+    .hmm-imgwrap img { display:block; width:100%; }
+    .hmm-imgwrap canvas { position:absolute; inset:0; width:100%; height:100%; }
+    .hmm-cap { font-size:12px; color:#8a93a3; margin-top:8px; text-align:center; }
+    .hm-cell.hmclick { cursor:pointer; }
+    .hm-cell.hmclick:hover { outline:2px solid #fff; outline-offset:-1px; }
+    .hm-cell.masked { outline:2px solid #d83a34; outline-offset:-1px; filter:grayscale(.7) brightness(.45); }
 
     /* ============================================================ Interactive demo */
     .demo { display:grid; grid-template-columns: 1.5fr 1fr; gap:24px; align-items:start; }
@@ -665,19 +693,27 @@
       <p class="fade-in">Prior methods all score a head by how strongly it attends from a set of <span style="color:var(--amber);font-weight:650">query tokens</span> to the <span style="color:var(--accent);font-weight:650">key tokens</span> in the evidence region. For grounding, we let the key tokens be the visual tokens overlapping the ground-truth box. Written in one form:</p>
 
       <div class="formula fade-in">
-        <span class="eq">
-          <span class="dim">score</span><sub class="dim">(l,h)</sub> &nbsp;=&nbsp;
-          <span class="s">&#937;</span><sub class="s">s&isin;S</sub>
-          <span class="dim">[</span>
-          <span class="q">(1/|Q<sub>s</sub>|) &#931;</span><sub class="q">t&isin;Q<sub>s</sub></sub>
-          <span class="k">&#934;</span><sub class="k">j&isin;K<sub>s</sub></sub>
-          <span class="dim">&alpha;<sub>l,h</sub>(t, j)</span>
-          <span class="dim">]</span>
-        </span>
+        <div class="formula-equation">
+          <math class="eq" display="block" aria-label="score of head l h equals cross-sample aggregation over the mean attention from query tokens to evidence-region key tokens">
+            <mrow>
+              <mi class="dim" mathvariant="normal">score</mi>
+              <mo class="dim">(</mo><mi class="dim">l</mi><mo class="dim">,</mo><mi class="dim">h</mi><mo class="dim">)</mo>
+              <mo class="dim">=</mo>
+              <msub class="s"><mi>&#937;</mi><mrow><mi>s</mi><mo>&isin;</mo><mi>S</mi></mrow></msub>
+              <mo class="dim">[</mo>
+              <mfrac class="q"><mn>1</mn><mrow><mo>|</mo><msub><mi>Q</mi><mi>s</mi></msub><mo>|</mo></mrow></mfrac>
+              <munder class="q"><mo>&#931;</mo><mrow><mi>t</mi><mo>&isin;</mo><msub><mi>Q</mi><mi>s</mi></msub></mrow></munder>
+              <msub class="k"><mi>&#934;</mi><mrow><mi>j</mi><mo>&isin;</mo><msub><mi>K</mi><mi>s</mi></msub></mrow></msub>
+              <msub class="dim"><mi>&alpha;</mi><mrow><mi>l</mi><mo>,</mo><mi>h</mi></mrow></msub>
+              <mo class="dim">(</mo><mi class="dim">t</mi><mo class="dim">,</mo><mi class="dim">j</mi><mo class="dim">)</mo>
+              <mo class="dim">]</mo>
+            </mrow>
+          </math>
+        </div>
         <div class="formula-legend">
-          <span><span class="lg-dot" style="background:#ffb37a"></span> Q<sub>s</sub> — query tokens</span>
-          <span><span class="lg-dot" style="background:#ff7a72"></span> &#934; — key aggregation over the region</span>
-          <span><span class="lg-dot" style="background:#7fd0ff"></span> &#937; — cross-sample aggregation</span>
+          <span><span class="lg-dot" style="background:#ffb37a"></span><span class="math-ref">Q<sub>s</sub></span> — query tokens</span>
+          <span><span class="lg-dot" style="background:#ff7a72"></span><span class="math-ref">&#934;</span> — key aggregation over the region</span>
+          <span><span class="lg-dot" style="background:#7fd0ff"></span><span class="math-ref">&#937;</span> — cross-sample aggregation</span>
         </div>
       </div>
 
@@ -687,24 +723,24 @@
       <div class="ds fade-in" id="ds">
         <div class="ds-controls">
           <div class="ds-axis">
-            <div class="axis-label"><span class="axis-tick" style="background:#f0a91e"></span> Query tokens &nbsp;Q<sub>s</sub></div>
+            <div class="axis-label"><span class="axis-tick" style="background:#f0a91e"></span> Query tokens &nbsp;<span class="math-ref">Q<sub>s</sub></span></div>
             <div class="seg" data-axis="q">
-              <button data-val="in">Input prompt<span class="mono">Q<sup>in</sup></span></button>
-              <button data-val="out" class="on">Output prediction<span class="mono">Q<sup>out</sup></span></button>
+              <button data-val="in">Input prompt<span class="math-ref">Q<sup>in</sup></span></button>
+              <button data-val="out" class="on">Output prediction<span class="math-ref">Q<sup>out</sup></span></button>
             </div>
           </div>
           <div class="ds-axis">
-            <div class="axis-label"><span class="axis-tick" style="background:#e2483d"></span> Key aggregation &nbsp;&#934;</div>
+            <div class="axis-label"><span class="axis-tick" style="background:#e2483d"></span> Key aggregation &nbsp;<span class="math-ref">&#934;</span></div>
             <div class="seg" data-axis="k">
-              <button data-val="argmax">Argmax indicator<span class="mono">&#934;<sup>argmax</sup></span></button>
-              <button data-val="sum" class="on">Region sum<span class="mono">&#934;<sup>sum</sup></span></button>
+              <button data-val="argmax">Argmax indicator<span class="math-ref">&#934;<sup>argmax</sup></span></button>
+              <button data-val="sum" class="on">Region sum<span class="math-ref">&#934;<sup>sum</sup></span></button>
             </div>
           </div>
           <div class="ds-axis">
-            <div class="axis-label"><span class="axis-tick" style="background:#5aa9e6"></span> Cross-sample &nbsp;&#937;</div>
+            <div class="axis-label"><span class="axis-tick" style="background:#5aa9e6"></span> Cross-sample &nbsp;<span class="math-ref">&#937;</span></div>
             <div class="seg" data-axis="s">
-              <button data-val="avg" class="on">Average<span class="mono">&#937;<sup>avg</sup></span></button>
-              <button data-val="freq">Voting / frequency<span class="mono">&#937;<sup>freq</sup></span></button>
+              <button data-val="avg" class="on">Average<span class="math-ref">&#937;<sup>avg</sup></span></button>
+              <button data-val="freq">Voting / frequency<span class="math-ref">&#937;<sup>freq</sup></span></button>
             </div>
           </div>
         </div>
@@ -720,11 +756,11 @@
       <h3 class="sub-title fade-in" style="margin-top:42px;">Causal validation picks the winner</h3>
       <div class="figure fade-in">
         <img src="static/figures/causal_validation_source.png" alt="Bar charts across four VLMs. Masking the top-20 heads found by our default variant causes the largest accuracy drop relative to the unmasked model; flipping the query-token axis recovers the most accuracy, while flipping key or sample aggregation barely changes the result.">
-        <p class="figcap"><strong>Figure 2. Causal validation of head-scoring variants (RefCOCO, four VLMs).</strong> We mask each variant's top-20 heads and report grounding accuracy &mdash; <em>lower is better</em> (more causal). Our default <span class="mono">(Q<sup>out</sup>, &#934;<sup>sum</sup>, &#937;<sup>avg</sup>)</span> drives the largest drop. The <span class="mono">Q<sub>s</sub></span>, <span class="mono">&#934;</span>, and <span class="mono">&#937;</span> bars each flip one axis; &Delta; is the gap to <em>Ours</em>. Flipping the query set hurts most &mdash; output tokens are where the causal signal lives.</p>
+        <p class="figcap"><strong>Figure 2. Causal validation of head-scoring variants (RefCOCO, four VLMs).</strong> We mask each variant's top-20 heads and report grounding accuracy &mdash; <em>lower is better</em> (more causal). Our default <span class="math-ref">(Q<sup>out</sup>, &#934;<sup>sum</sup>, &#937;<sup>avg</sup>)</span> drives the largest drop. The <span class="math-ref">Q<sub>s</sub></span>, <span class="math-ref">&#934;</span>, and <span class="math-ref">&#937;</span> bars each flip one axis; &Delta; is the gap to <em>Ours</em>. Flipping the query set hurts most &mdash; output tokens are where the causal signal lives.</p>
       </div>
 
       <h3 class="sub-title fade-in" style="margin-top:34px;">How we mask a head</h3>
-      <p class="fade-in">To test a head's causal contribution, we zero the attention output of head <span class="mono">(l, h)</span> before it is added to the residual stream &mdash; leaving every other head, MLP, and layer-norm untouched. This is the same intervention used for text retrieval heads, so the results are directly comparable. All experiments run on a single 48&nbsp;GB GPU.</p>
+      <p class="fade-in">To test a head's causal contribution, we zero the attention output of head <span class="math-ref">(l, h)</span> before it is added to the residual stream &mdash; leaving every other head, MLP, and layer-norm untouched. This is the same intervention used for text retrieval heads, so the results are directly comparable. All experiments run on a single 48&nbsp;GB GPU.</p>
     </div>
   </section>
 
@@ -880,6 +916,29 @@
           <div class="hm-readout" id="hmReadout">Hover a glowing cell &hellip;</div>
           <div class="hm-legend" style="margin-top:16px;"><span>rank&nbsp;20</span><div class="hm-bar"></div><span>rank&nbsp;1</span></div>
           <p class="note" style="margin-top:14px;">Top-20 <span class="mono">(layer, head)</span> indices are taken verbatim from the paper's appendix.</p>
+        </div>
+      </div>
+
+      <div class="hm-mask-demo fade-in" id="hmMaskDemo" hidden>
+        <div class="hmm-head">
+          <h4>Knock out the heads &mdash; watch grounding break</h4>
+          <p>The <strong>12 highest-ranked VRHs</strong> on the map above are individually clickable &mdash; knock out <em>any combination</em> and inspect how the predicted box <span class="b-pred">(red)</span> changes relative to the <span class="b-gt">ground truth (green)</span>. The buttons apply the <strong>full top-20</strong> intervention or a <strong>20-random-head</strong> control. Each box is a precomputed Qwen2.5-VL-7B output for that exact set of masked heads; invalid outputs and control failures remain visible.</p>
+        </div>
+        <div class="hmm-body">
+          <div class="hmm-left">
+            <div class="hmm-flabel">Example</div>
+            <div class="hmm-pills" id="hmmPills"></div>
+            <div class="hmm-ctrls">
+              <button class="btn" id="hmmAll20">Mask all 20 VRHs</button>
+              <button class="btn" id="hmmRand">Mask 20 random</button>
+              <button class="btn" id="hmmReset">Reset</button>
+            </div>
+            <div class="hmm-readout" id="hmmReadout"></div>
+          </div>
+          <div class="hmm-imgcol">
+            <div class="hmm-imgwrap" id="hmmImgWrap"><img id="hmmImg" alt="grounding example"><canvas id="hmmCanvas"></canvas></div>
+            <div class="hmm-cap" id="hmmCap"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1268,6 +1327,51 @@
         grid.appendChild(cell);
       }
     }
+
+    /* ---- interactive head-masking on the map (mask heads -> grounding breaks) ---- */
+    (function(){
+      const HB='static/steering_hm', $=id=>document.getElementById(id), HD2=28;
+      let man=null, S=null, masked=new Set(), preset=null; const cache={};
+      function loadScript(src){ return new Promise((r,j)=>{const s=document.createElement('script');s.src=src;s.onload=()=>r();s.onerror=()=>j(new Error(src));document.head.appendChild(s);}); }
+      async function getMan(){ if(man)return man; if(!window.__HM_MANIFEST__) await loadScript(HB+'/manifest_hm.js'); man=window.__HM_MANIFEST__; return man; }
+      async function getStates(e){ if(cache[e])return cache[e]; if(!(window.__HM_STATES__&&window.__HM_STATES__[e])) await loadScript(HB+'/examples/'+e+'/states_hm.js'); return cache[e]=(window.__HM_STATES__||{})[e]; }
+      function cellAt(l,h){ const g=$('headmap'); return g?g.children[l*HD2+h]:null; }
+      function curPred(){ if(preset==='all20') return S.all20||S.baseline; if(preset==='rand20') return S.rand20||S.baseline; let b=0; masked.forEach(i=>b|=(1<<i)); const o=b*4; return S.sub.slice(o,o+4); }
+      function cl(v){ return Math.max(0,Math.min(1,v)); }
+      function normBox(b){ if(!Array.isArray(b)||b.length!==4||b.some(v=>!Number.isFinite(v)||v<0))return null;
+        const x0=cl(Math.min(b[0],b[2])),y0=cl(Math.min(b[1],b[3])),x1=cl(Math.max(b[0],b[2])),y1=cl(Math.max(b[1],b[3]));
+        return x1>x0&&y1>y0?[x0,y0,x1,y1]:null; }
+      function draw(){ const cv=$('hmmCanvas'), img=$('hmmImg'); if(!S||!cv||!img.naturalWidth)return; const W=S.image_wh[0],H=S.image_wh[1]; cv.width=W; cv.height=H; const ctx=cv.getContext('2d'); ctx.clearRect(0,0,W,H);
+        const box=(bn,color,lw)=>{ ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.strokeRect(bn[0]*W,bn[1]*H,(bn[2]-bn[0])*W,(bn[3]-bn[1])*H); };
+        const gt=normBox(S.gt),p=normBox(curPred()); if(gt)box(gt,'#1f9d57',Math.max(3,W/150)); if(p)box(p,'#d83a34',Math.max(3,W/160)); }
+      function iou(aRaw,bRaw){ const a=normBox(aRaw),b=normBox(bRaw); if(!a||!b)return null;
+        const x0=Math.max(a[0],b[0]),y0=Math.max(a[1],b[1]),x1=Math.min(a[2],b[2]),y1=Math.min(a[3],b[3]); const iw=Math.max(0,x1-x0),ih=Math.max(0,y1-y0),I=iw*ih,U=(a[2]-a[0])*(a[3]-a[1])+(b[2]-b[0])*(b[3]-b[1])-I; return U>0?I/U:0; }
+      function refreshCells(){ const g=$('headmap'); if(g) g.querySelectorAll('.hm-cell.masked').forEach(c=>c.classList.remove('masked'));
+        let heads=[]; if(preset==='all20') heads=man.top20; else if(preset==='rand20') heads=man.rand20||[]; else masked.forEach(i=>heads.push(man.top_clickable[i]));
+        heads.forEach(lh=>{ const c=cellAt(lh[0],lh[1]); if(c)c.classList.add('masked'); });
+        $('hmmAll20').classList.toggle('on',preset==='all20'); $('hmmRand').classList.toggle('on',preset==='rand20'); }
+      function render(){ refreshCells(); draw();
+        const label= preset==='all20'?'all 20 VRHs': preset==='rand20'?'20 random heads': (masked.size+' of top-'+man.K+' VRHs');
+        const nm=preset?20:masked.size,io=iou(S.gt,curPred()),valid=io!=null;
+        $('hmmReadout').innerHTML='<b>'+nm+'</b> head'+(nm===1?'':'s')+' masked <span style="color:#8a93a3">('+label+')</span><br>'+(valid?('predicted box &ndash; ground-truth IoU: <b>'+io.toFixed(2)+'</b>'+(io<0.35?' <span style="color:#d83a34">&mdash; grounding broken</span>':io>0.7?' <span style="color:#1f9d57">&mdash; still on target</span>':'')):'<span style="color:#d83a34">no valid box &mdash; the model&rsquo;s output broke</span>');
+        $('hmmCap').textContent='“'+S.expr+'”  ·  '+S.dataset; }
+      function toggle(i){ preset=null; masked.has(i)?masked.delete(i):masked.add(i); render(); }
+      async function select(e){ S=await getStates(e); if(!S)return; masked.clear(); preset=null;
+        $('hmmImgWrap').style.aspectRatio=S.image_wh[0]+' / '+S.image_wh[1];
+        const img=$('hmmImg'); img.onload=render; img.src=HB+'/examples/'+e+'/raw.webp';
+        document.querySelectorAll('#hmmPills button').forEach(b=>b.classList.toggle('on',b.dataset.e===e));
+        if(img.complete&&img.naturalWidth) render(); }
+      (async function init(){ try{ await getMan(); }catch(err){ return; }
+        if(!man||!man.examples||!man.examples.length) return;
+        $('hmMaskDemo').hidden=false;
+        const ph=$('hmmPills'); man.examples.forEach(e=>{ const b=document.createElement('button'); b.dataset.e=e.id; b.textContent='“'+e.expr+'”'; b.title=e.expr+' ('+e.dataset+')'; b.onclick=()=>select(e.id); ph.appendChild(b); });
+        (man.top_clickable||[]).forEach((lh,i)=>{ const c=cellAt(lh[0],lh[1]); if(c){ c.classList.add('hmclick'); c.addEventListener('click',()=>toggle(i)); } });
+        $('hmmAll20').onclick=()=>{ preset=(preset==='all20')?null:'all20'; masked.clear(); render(); };
+        $('hmmRand').onclick=()=>{ preset=(preset==='rand20')?null:'rand20'; masked.clear(); render(); };
+        $('hmmReset').onclick=()=>{ preset=null; masked.clear(); render(); };
+        select(man.examples[0].id);
+      })();
+    })();
 
     /* ---- Table 3: cross-task generalization ---- */
     const GEN = {
