@@ -17,6 +17,7 @@
   <meta property="og:description" content="Uncovering how VLMs locate and extract visual information through a sparse set of causal attention heads.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="ICML 2026 Workshop on Mechanistic Interpretability">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23d83a34'/><circle cx='50' cy='50' r='14' fill='white'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
@@ -452,6 +453,50 @@
 
     .note { font-size:13.5px; color:var(--muted); }
     .divider { height:1px; background:var(--line); border:none; margin: 0; }
+
+    /* ---- VRH steering cursor mode ---- */
+    .steer-live-dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:#e4860f; margin-left:5px; vertical-align:middle; }
+    #demoSeg button.steer-btn.on .steer-live-dot{ animation:steerpulse 1.3s infinite; }
+    @keyframes steerpulse{ 0%,100%{ opacity:1; } 50%{ opacity:.2; } }
+    #demoWrap.steer-on{ cursor:crosshair; touch-action:none; outline:none; }
+    #demoWrap.steer-on:focus-visible{ box-shadow:0 0 0 3px rgba(228,134,15,.55); }
+    .steer-veil{ position:absolute; inset:0; background:rgba(10,12,20,.30); pointer-events:none; z-index:3; display:none; transition:clip-path .09s linear; }
+    .steer-roi{ position:absolute; border:2px solid #e4860f; border-radius:3px; box-shadow:0 0 0 1px rgba(0,0,0,.35), 0 2px 10px rgba(228,134,15,.35); pointer-events:none; z-index:4; display:none; }
+    #demoWrap.steer-on .steer-veil, #demoWrap.steer-on .steer-roi{ display:block; }
+    .steer-loading{ position:absolute; top:8px; right:8px; z-index:5; background:rgba(0,0,0,.62); color:#fff; font-size:12px; padding:3px 9px; border-radius:20px; }
+    .steer-panel{ margin-top:14px; border:1px solid var(--line,#d9dde3); border-radius:12px; padding:12px 14px; background:rgba(255,255,255,.55); }
+    .steer-panel-h{ font-weight:700; font-size:14px; margin-bottom:8px; color:var(--ink,#1a1a1a); }
+    .steer-panel-h i{ color:#e4860f; margin-right:6px; }
+    .steer-kv{ display:flex; justify-content:space-between; gap:12px; font-size:13px; padding:3px 0; border-bottom:1px dashed var(--line,#e6e9ee); }
+    .steer-kv span{ color:var(--muted,#6b7280); } .steer-kv b{ text-align:right; }
+    .steer-resp{ margin-top:9px; font-size:13px; font-style:italic; color:var(--ink,#333); line-height:1.5; max-height:5.4em; overflow:auto; }
+    .steer-err{ color:#b01e1e; font-size:13px; }
+    .steer-panel .mono, .demo .mono{ font-family:'JetBrains Mono',ui-monospace,monospace; font-size:12px; }
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+    @media (prefers-reduced-motion: reduce){ .steer-veil{ transition:none; } .steer-live-dot{ animation:none; } }
+
+    /* ---- v2 segment-steering gaze ---- */
+    .gaze{ display:grid; grid-template-columns:1.12fr .88fr; gap:26px; align-items:start; }
+    @media (max-width:860px){ .gaze{ grid-template-columns:1fr; } }
+    .gaze-imgwrap{ position:relative; width:100%; border-radius:14px; overflow:hidden; background:#0b0d14; cursor:crosshair; touch-action:none; outline:none; box-shadow:0 8px 30px rgba(0,0,0,.14); }
+    .gaze-imgwrap:focus-visible{ box-shadow:0 0 0 3px rgba(228,134,15,.6); }
+    #gazeImg{ display:block; width:100%; height:100%; object-fit:cover; }
+    #gazeCanvas{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+    .gaze-badge{ position:absolute; left:10px; top:10px; z-index:4; background:rgba(0,0,0,.6); color:#fff; font-size:12px; padding:4px 10px; border-radius:20px; }
+    .gaze-badge i{ margin-right:5px; opacity:.8; }
+    .gaze-pills{ margin-top:12px; }
+    .gaze-tasks{ margin-bottom:12px; flex-wrap:wrap; }
+    .gaze-cmp{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:11px; }
+    @media (max-width:520px){ .gaze-cmp{ grid-template-columns:1fr; } }
+    .gaze-cmp-col{ border:1px solid var(--line,#e6e9ee); border-radius:10px; padding:8px 10px; background:rgba(255,255,255,.5); }
+    .gaze-cmp-col.steered{ border-color:#e4860f; background:rgba(228,134,15,.06); }
+    .gaze-cmp-h{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:var(--muted,#6b7280); margin-bottom:5px; }
+    .gaze-cmp .steer-resp{ margin-top:0; max-height:none; overflow:visible; font-style:normal; }
+    mark.dchg{ border-radius:3px; padding:0 1.5px; background:none; }
+    mark.dsteer{ background:rgba(228,134,15,.32); color:inherit; font-weight:600; }
+    mark.dbase{ background:rgba(120,128,140,.16); color:inherit; text-decoration:line-through; text-decoration-color:rgba(150,155,165,.7); }
+    .gaze-diff-note{ margin-top:8px; font-size:11px; color:var(--muted,#6b7280); }
+    .gaze-diff-note mark.dchg{ font-size:10px; }
   </style>
 </head>
 <body>
@@ -490,8 +535,8 @@
       </div>
 
       <div class="hero-links">
-        <a class="btn" href="#" aria-disabled="true"><i class="fas fa-book"></i> arXiv <span class="note">(soon)</span></a>
-        <a class="btn" href="#" aria-disabled="true"><i class="fab fa-github"></i> Code <span class="note">(soon)</span></a>
+        <span class="btn" aria-disabled="true"><i class="fas fa-book"></i> arXiv <span class="note">(soon)</span></span>
+        <span class="btn" aria-disabled="true"><i class="fab fa-github"></i> Code <span class="note">(soon)</span></span>
         <a class="btn" href="#heads"><i class="fas fa-table-cells"></i> Detected Heads</a>
       </div>
     </div>
@@ -757,8 +802,7 @@
             <div class="demo-flabel">Attention from</div>
             <div class="seg demo-seg" id="demoSeg">
               <button data-st="input">Input</button>
-              <button data-st="all" class="on">All heads</button>
-              <button data-st="vrh">VRHs only</button>
+              <button data-st="all" class="on">Baseline</button>
               <button data-st="masked">VRHs removed</button>
             </div>
           </div>
@@ -783,6 +827,36 @@
       </div>
 
       <p class="tbl-note" style="text-align:center; max-width:80ch; margin-left:auto; margin-right:auto;">Attention overlays are the paper's own qualitative examples (Qwen2.5-VL-7B). Accuracy figures are dataset-level (RefCOCO, Toloka) from the appendix: masking the top-20 VRHs &mdash; 2.6% of heads &mdash; collapses grounding, while masking the same number of <em>random</em> heads barely moves it.</p>
+    </div>
+  </section>
+
+  <!-- ===================== SEGMENT-STEERING GAZE (v2) ===================== -->
+  <section class="soft" id="gaze">
+    <div class="container wide">
+      <div class="section-head center fade-in">
+        <div class="eyebrow">Steer it</div>
+        <h2 class="section-title">Point at an object &mdash; steer the VRH gaze</h2>
+        <p class="section-sub">Every object is tinted its own color. Move the cursor over one &mdash; it lights up, and we force the top-20 <strong>Visual Retrieval Heads</strong> to attend <strong>only</strong> to that segment. The precomputed output then shows how the model&rsquo;s predicted box <span style="color:#d83a34;font-weight:700">(red)</span> changes under that intervention.</p>
+      </div>
+      <div class="gaze fade-in">
+        <div class="gaze-stage">
+          <div class="gaze-imgwrap" id="gazeWrap" tabindex="0" title="Move the cursor over an object; arrow keys cycle segments">
+            <img id="gazeImg" alt="Input image; move the cursor over an object to steer the VRHs to it.">
+            <canvas id="gazeCanvas"></canvas>
+            <span class="gaze-badge" id="gazeBadge"><i class="fas fa-arrows-up-down-left-right"></i> move the cursor over an object</span>
+            <div class="steer-loading" id="gazeLoad" hidden>&hellip;</div>
+          </div>
+          <div class="gaze-pills demo-pills" id="gazePills"></div>
+        </div>
+        <div class="gaze-panel">
+          <div class="demo-flabel">Task</div>
+          <div class="seg gaze-tasks" id="gazeTasks"></div>
+          <div id="gazeInfo" class="steer-panel"></div>
+          <div class="qlegend demo-legend"><span><span class="sw" style="background:linear-gradient(90deg,#e0574d,#e0b34d,#5fbf6f,#5f8fd8,#b06fd0)"></span> Color-coded object segments</span><span><span class="sw" style="background:#d83a34"></span> Steered predicted box</span></div>
+        </div>
+      </div>
+      <p class="tbl-note" style="text-align:center;max-width:82ch;margin:0 auto;">Each object segment is an automatic mask; steering forces the top-20 VRHs&rsquo; attention uniformly onto the pointed segment (decode-only, matching how VRHs were detected). Boxes are precomputed object-locate outputs from Qwen3-VL-8B. The showcase omits incomplete or unusable segment outputs; steering can redirect a prediction, but is not guaranteed to match every selected segment.</p>
+      <div class="sr-only" id="gazeAria" aria-live="polite"></div>
     </div>
   </section>
 
@@ -1045,7 +1119,7 @@
       </div>
       <div class="bibtex-box fade-in">
         <button class="copy-btn" id="copyBtn" onclick="copyBibtex()"><i class="fas fa-copy"></i> Copy</button>
-        <pre id="bibtex"><span class="k">@inproceedings</span>{park2026retrievalheads,
+        <pre id="bibtexCode"><span class="k">@inproceedings</span>{park2026retrievalheads,
   title     = {Retrieval Heads Meet Vision: Uncovering How VLMs
                Locate and Extract Visual Information},
   author    = {Park, Chanho and Choi, Daehyeon and Lee, Jihyun
@@ -1094,7 +1168,7 @@
 
     /* ---- copy bibtex ---- */
     function copyBibtex(){
-      const t = document.getElementById('bibtex').innerText;
+      const t = document.getElementById('bibtexCode').innerText;
       navigator.clipboard.writeText(t).then(()=>{
         const b = document.getElementById('copyBtn');
         b.innerHTML = '<i class="fas fa-check"></i> Copied!'; b.classList.add('copied');
@@ -1271,21 +1345,22 @@
       if (st==='vrh')    return { show:true, val:d.full, tone:'good', label:`${d.ds} grounding accuracy`, note:`Model still fully intact &mdash; 20 / ${HEADS_TOTAL} heads produce this attention.` };
       return { show:true, val:d.full, tone:'good', label:`${d.ds} grounding accuracy`, note:'All heads active — the full model.' };
     }
+
     function renderDemo(){
       const d = DEMO[curEx];
-      showDemoImage(curEx, curSt);
-      document.getElementById('demoBadge').textContent = ST_BADGE[curSt];
       document.getElementById('demoDs').textContent = d.ds;
       document.getElementById('demoExpr').innerHTML = `<i class="fas fa-quote-left"></i>${d.expr}`;
       document.querySelectorAll('#demoSeg button').forEach(b=> b.classList.toggle('on', b.dataset.st===curSt));
       document.querySelectorAll('#demoPills button').forEach(b=> b.classList.toggle('on', b.dataset.ex===curEx));
+      const meter = document.getElementById('demoMeter'), fill = document.getElementById('meterFill');
+      showDemoImage(curEx, curSt);
+      document.getElementById('demoBadge').textContent = ST_BADGE[curSt];
       document.getElementById('demoNote').innerHTML = demoNote(curEx, curSt);
-      const m = demoMeter(curEx, curSt), meter = document.getElementById('demoMeter'), fill = document.getElementById('meterFill');
+      const m = demoMeter(curEx, curSt);
       if (!m.show){
         meter.style.opacity = .4; meter.classList.remove('bad'); meter.classList.add('good');
         document.getElementById('meterLabel').textContent = 'Referring-expression localization';
-        document.getElementById('meterVal').textContent = '—';
-        fill.style.width = '0%';
+        document.getElementById('meterVal').textContent = '—'; fill.style.width = '0%';
         document.getElementById('meterNote').innerHTML = 'Pick a head set to see its effect on accuracy.';
         return;
       }
@@ -1296,10 +1371,100 @@
       fill.style.width = Math.max(2, m.val)+'%';
       document.getElementById('meterNote').innerHTML = m.note;
     }
+    const CYCLE=['input','all','masked'];
     document.querySelectorAll('#demoSeg button').forEach(b=> b.addEventListener('click', ()=>{ curSt=b.dataset.st; renderDemo(); }));
     document.querySelectorAll('#demoPills button').forEach(b=> b.addEventListener('click', ()=>{ curEx=b.dataset.ex; renderDemo(); }));
-    dWrap.addEventListener('click', ()=>{ curSt = ST_ORDER[(ST_ORDER.indexOf(curSt)+1)%ST_ORDER.length]; renderDemo(); });
+    dWrap.addEventListener('click', ()=>{ curSt = CYCLE[(CYCLE.indexOf(curSt)+1)%CYCLE.length]; renderDemo(); });
     renderDemo();
+
+    /* ============ curated showcase: color-coded segment steering (locate / describe / vqa) ============ */
+    (function(){
+      const BASE='static/steering_show', $=id=>document.getElementById(id);
+      const esc=s=>(s||'').replace(/[<>&"]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
+      const clean=s=>esc((s||'').replace(/```json|```/g,'').replace(/\s+/g,' ').trim());
+      const rawText=s=>(s||'').replace(/```json|```/g,'').replace(/\s+/g,' ').trim();
+      function wordDiff(aRaw,bRaw){
+        const A=aRaw?aRaw.split(' '):[], B=bRaw?bRaw.split(' '):[], m=A.length, n=B.length;
+        const dp=Array.from({length:m+1},()=>new Uint16Array(n+1));
+        for(let i=m-1;i>=0;i--)for(let j=n-1;j>=0;j--) dp[i][j]= A[i]===B[j]? dp[i+1][j+1]+1 : Math.max(dp[i+1][j],dp[i][j+1]);
+        const aO=[],bO=[]; let i=0,j=0;
+        while(i<m&&j<n){ if(A[i]===B[j]){ aO.push(esc(A[i])); bO.push(esc(B[j])); i++;j++; }
+          else if(dp[i+1][j]>=dp[i][j+1]){ aO.push('<mark class="dchg dbase">'+esc(A[i])+'</mark>'); i++; }
+          else { bO.push('<mark class="dchg dsteer">'+esc(B[j])+'</mark>'); j++; } }
+        while(i<m){ aO.push('<mark class="dchg dbase">'+esc(A[i])+'</mark>'); i++; }
+        while(j<n){ bO.push('<mark class="dchg dsteer">'+esc(B[j])+'</mark>'); j++; }
+        return { a:aO.join(' '), b:bO.join(' ') };
+      }
+      const TASKLBL={locate:'Locate',describe:'Describe',vqa:'VQA'};
+      let man=null, ex=null, S=null, task='locate', grid=null, gw=0, gh=0, curSeg=-1, PAL=null;
+      const cache={};
+      const REM=()=> (window.__SHOW_REMOVE__&&window.__SHOW_REMOVE__[ex])||[];
+      function loadScript(src){ return new Promise((r,j)=>{const s=document.createElement('script');s.src=src;s.onload=()=>r();s.onerror=()=>j(new Error(src.split('/').pop()));document.head.appendChild(s);}); }
+      async function getMan(){ if(man)return man; if(!window.__SHOW_MANIFEST__) await loadScript(BASE+'/manifest_show.js'); if(!window.__SHOW_REMOVE__){ try{ await loadScript(BASE+'/removals.js'); }catch(e){} } man=window.__SHOW_MANIFEST__; return man; }
+      async function getStates(e){ if(cache[e])return cache[e]; if(!(window.__SHOW_STATES__&&window.__SHOW_STATES__[e])) await loadScript(BASE+'/examples/'+e+'/states_show.js'); const x=(window.__SHOW_STATES__||{})[e]; if(!x)throw new Error('states '+e); return cache[e]=x; }
+      function unrle(a,w,h){ const out=new Int16Array(w*h); let i=0; for(const p of a){let v=p[0],n=p[1]; while(n-->0)out[i++]=v;} return out; }
+      function hsl(h,s,l){ const a=s*Math.min(l,1-l); const f=n=>{const k=(n+h*12)%12; return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1))));}; return [f(0),f(8),f(4)]; }
+      function buildPalette(n){ const p=[]; for(let i=0;i<n+2;i++){ p.push(hsl(((i*137.508)%360)/360,0.72,0.55)); } return p; }
+      function segAt(xn,yn){ if(!grid)return -1; const c=Math.min(gw-1,Math.max(0,Math.floor(xn*gw))),r=Math.min(gh-1,Math.max(0,Math.floor(yn*gh))); return grid[r*gw+c]; }
+      function draw(hov){
+        const cv=$('gazeCanvas'); if(!S||!cv)return; const W=S.image_wh[0],H=S.image_wh[1];
+        cv.width=W; cv.height=H; const ctx=cv.getContext('2d');
+        const off=document.createElement('canvas'); off.width=gw; off.height=gh;
+        const octx=off.getContext('2d'), id=octx.createImageData(gw,gh), d=id.data, rem=REM();
+        for(let i=0;i<gw*gh;i++){ const sid=grid[i], o=i*4;
+          if(rem.indexOf(sid)>=0){ d[o+3]=0; continue; }
+          const c=PAL[sid]||PAL[0]; d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; d[o+3]=(sid===hov)?175:82; }
+        octx.putImageData(id,0,0); ctx.clearRect(0,0,W,H); ctx.imageSmoothingEnabled=true; ctx.drawImage(off,0,0,W,H);
+        if(task==='locate'){ const seg=S.segments[String(hov)];
+          if(seg && rem.indexOf(hov)<0){ const bn=seg.locate&&seg.locate.pred_bbox_norm; if(bn){ ctx.strokeStyle='#d83a34'; ctx.lineWidth=Math.max(2.5,W/170); ctx.strokeRect(bn[0]*W,bn[1]*H,(bn[2]-bn[0])*W,(bn[3]-bn[1])*H); } } }
+      }
+      function boxpx(bn,W,H){ return bn?('['+bn.map((v,i)=>Math.round(v*(i%2?H:W))).join(', ')+']'):'&mdash;'; }
+      function panel(sid){
+        const seg=S.segments[String(sid)], W=S.image_wh[0], H=S.image_wh[1], removed=REM().indexOf(sid)>=0;
+        if(!seg||removed){ $('gazeInfo').innerHTML='<div class="steer-panel-h"><i class="fas fa-crosshairs"></i> Move the cursor over an object</div>'; return; }
+        const head='<div class="steer-panel-h"><i class="fas fa-crosshairs"></i> VRHs steered to this object</div>'+
+          '<div class="steer-kv"><span>Object segment</span><b>#'+sid+' &middot; '+(seg.token_count||0)+' tokens &middot; '+((seg.area_frac||0)*100).toFixed(0)+'% area</b></div>';
+        if(task==='locate'){
+          const loc=seg.locate||{}, base=S.baseline_locate||{};
+          $('gazeInfo').innerHTML=head+
+            '<div class="steer-kv"><span>VRH attention in object</span><b>'+(loc.roi_inside_mass!=null?(loc.roi_inside_mass*100).toFixed(0)+'%':'—')+'</b></div>'+
+            '<div class="gaze-cmp"><div class="gaze-cmp-col"><div class="gaze-cmp-h">Baseline box &middot; no steering</div><div class="steer-resp mono">'+boxpx(base.pred_bbox_norm,W,H)+'</div></div>'+
+            '<div class="gaze-cmp-col steered"><div class="gaze-cmp-h">Steered box &middot; this object</div><div class="steer-resp mono">'+boxpx(loc.pred_bbox_norm,W,H)+'</div></div></div>';
+        } else {
+          const base= task==='describe'? S.baseline_describe : S.baseline_vqa;
+          const steer= seg[task];
+          const dd=(base&&steer)? wordDiff(rawText(base),rawText(steer)) : null;
+          const baseHtml=dd?dd.a:clean(base), steerHtml=dd?dd.b:(steer?clean(steer):'&mdash;');
+          $('gazeInfo').innerHTML=head+
+            (task==='vqa'&&S.vqa_question?'<div class="steer-kv"><span>Question</span><b>'+esc(S.vqa_question)+'</b></div>':'')+
+            '<div class="gaze-cmp"><div class="gaze-cmp-col"><div class="gaze-cmp-h">Baseline &middot; no steering</div><div class="steer-resp">'+baseHtml+'</div></div>'+
+            '<div class="gaze-cmp-col steered"><div class="gaze-cmp-h">Steered to this object</div><div class="steer-resp">'+steerHtml+'</div></div></div>'+
+            (dd?'<div class="gaze-diff-note"><mark class="dchg dsteer">amber</mark> = added / changed by steering &middot; <mark class="dchg dbase">struck</mark> = only in baseline</div>':'');
+        }
+        $('gazeAria').textContent='Object '+sid;
+      }
+      function show(sid){ if(sid==null||sid<0)return; curSeg=sid; draw(sid); panel(sid); }
+      function buildTasks(){ const h=$('gazeTasks'); if(!h)return; const e=man.examples.find(x=>x.name===ex); const ts=['locate']; if(e&&e.has_dv){ ts.push('describe','vqa'); }
+        h.innerHTML=''; ts.forEach(k=>{ const b=document.createElement('button'); b.textContent=TASKLBL[k]; b.className=(k===task?'on':''); b.onclick=()=>{ task=k; buildTasks(); draw(curSeg>=0?curSeg:-1); panel(curSeg>=0?curSeg:-1); }; h.appendChild(b); }); }
+      function buildPills(){ const h=$('gazePills'); h.innerHTML=''; man.examples.forEach(e=>{ const b=document.createElement('button'); b.textContent=e.name.replace('coco_','#'); b.className=(e.name===ex?'on':''); b.onclick=()=>select(e.name); h.appendChild(b); }); }
+      async function select(e){
+        try{ await getMan(); S=await getStates(e); }catch(err){ $('gazeInfo').innerHTML='<div class="steer-err">⚠ Could not load ('+esc(err.message)+').</div>'; return; }
+        ex=e; gw=S.seg_grid.w; gh=S.seg_grid.h; grid=unrle(S.seg_grid.rle,gw,gh); curSeg=-1; task='locate'; PAL=buildPalette(S.n_segments);
+        $('gazeWrap').style.aspectRatio=S.image_wh[0]+' / '+S.image_wh[1];
+        const img=$('gazeImg'); img.onload=()=>{ draw(-1); panel(-1); }; img.src=BASE+'/examples/'+e+'/raw.webp';
+        buildPills(); buildTasks();
+        if(img.complete&&img.naturalWidth){ draw(-1); panel(-1); }
+      }
+      function ptr(evt){ const R=$('gazeImg').getBoundingClientRect(); if(!R.width)return -1; const px=evt.touches?evt.touches[0].clientX:evt.clientX,py=evt.touches?evt.touches[0].clientY:evt.clientY; const x=(px-R.left)/R.width,y=(py-R.top)/R.height; if(x<0||x>1||y<0||y>1)return -1; return segAt(x,y); }
+      (async function init(){
+        try{ await getMan(); }catch(e){ return; }
+        const img=$('gazeImg'), wrap=$('gazeWrap'); if(!img) return;
+        const mv=evt=>{ const s=ptr(evt); if(s>=0&&s!==curSeg) requestAnimationFrame(()=>show(s)); };
+        img.addEventListener('pointermove',mv); img.addEventListener('touchmove',mv,{passive:true});
+        wrap.addEventListener('keydown',evt=>{ if(!S)return; const ids=Object.keys(S.segments).map(Number).filter(s=>REM().indexOf(s)<0).sort((a,b)=>a-b); if(!ids.length)return; let i=ids.indexOf(curSeg); if(['ArrowRight','ArrowDown'].includes(evt.key))i++; else if(['ArrowLeft','ArrowUp'].includes(evt.key))i--; else return; evt.preventDefault(); show(ids[((i%ids.length)+ids.length)%ids.length]); });
+        select(man.examples[0].name);
+      })();
+    })();
   </script>
 </body>
 </html>

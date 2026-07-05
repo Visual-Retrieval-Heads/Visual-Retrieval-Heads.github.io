@@ -1,0 +1,8 @@
+.omc/
+static/.omc/
+curate.html
+segedit.html
+select*.html
+index.html*.bak
+static/steering2/
+static/steering_multi/
