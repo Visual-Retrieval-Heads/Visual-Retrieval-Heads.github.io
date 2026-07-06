@@ -13,6 +13,7 @@
   <meta name="citation_author" content="Minhyuk Sung">
   <meta name="citation_conference_title" content="ICML 2026 Workshop on Mechanistic Interpretability">
   <meta name="citation_publication_date" content="2026">
+  <meta name="citation_pdf_url" content="https://openreview.net/pdf?id=396ekAMv1z">
   <meta property="og:title" content="Retrieval Heads Meet Vision">
   <meta property="og:description" content="Uncovering how VLMs locate and extract visual information through a sparse set of causal attention heads.">
   <meta property="og:type" content="website">
@@ -563,6 +564,7 @@
       </div>
 
       <div class="hero-links">
+        <a class="btn" href="https://openreview.net/pdf?id=396ekAMv1z" target="_blank" rel="noopener"><i class="fas fa-file-pdf"></i> Paper <span class="note">(OpenReview)</span></a>
         <span class="btn" aria-disabled="true"><i class="fas fa-book"></i> arXiv <span class="note">(soon)</span></span>
         <span class="btn" aria-disabled="true"><i class="fab fa-github"></i> Code <span class="note">(soon)</span></span>
         <a class="btn" href="#heads"><i class="fas fa-table-cells"></i> Detected Heads</a>
@@ -1481,7 +1483,7 @@
     dWrap.addEventListener('click', ()=>{ curSt = CYCLE[(CYCLE.indexOf(curSt)+1)%CYCLE.length]; renderDemo(); });
     renderDemo();
 
-    /* ============ curated showcase: color-coded segment steering (locate / describe / vqa) ============ */
+    /* ============ curated showcase: color-coded segment steering (locate / describe) ============ */
     (function(){
       const BASE='static/steering_show', $=id=>document.getElementById(id);
       const esc=s=>(s||'').replace(/[<>&"]/g,m=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[m]));
@@ -1499,7 +1501,7 @@
         while(j<n){ bO.push('<mark class="dchg dsteer">'+esc(B[j])+'</mark>'); j++; }
         return { a:aO.join(' '), b:bO.join(' ') };
       }
-      const TASKLBL={locate:'Locate',describe:'Describe',vqa:'VQA'};
+      const TASKLBL={locate:'Locate',describe:'Describe'};
       let man=null, ex=null, S=null, task='locate', grid=null, gw=0, gh=0, curSeg=-1, PAL=null;
       const cache={};
       const REM=()=> (window.__SHOW_REMOVE__&&window.__SHOW_REMOVE__[ex])||[];
@@ -1535,12 +1537,11 @@
             '<div class="steering-cmp"><div class="steering-cmp-col"><div class="steering-cmp-h">Baseline box &middot; no steering</div><div class="steer-resp mono">'+boxpx(base.pred_bbox_norm,W,H)+'</div></div>'+
             '<div class="steering-cmp-col steered"><div class="steering-cmp-h">Steered box &middot; this object</div><div class="steer-resp mono">'+boxpx(loc.pred_bbox_norm,W,H)+'</div></div></div>';
         } else {
-          const base= task==='describe'? S.baseline_describe : S.baseline_vqa;
-          const steer= seg[task];
+          const base=S.baseline_describe;
+          const steer=seg.describe;
           const dd=(base&&steer)? wordDiff(rawText(base),rawText(steer)) : null;
           const baseHtml=dd?dd.a:clean(base), steerHtml=dd?dd.b:(steer?clean(steer):'&mdash;');
           $('steeringInfo').innerHTML=head+
-            (task==='vqa'&&S.vqa_question?'<div class="steer-kv"><span>Question</span><b>'+esc(S.vqa_question)+'</b></div>':'')+
             '<div class="steering-cmp"><div class="steering-cmp-col"><div class="steering-cmp-h">Baseline &middot; no steering</div><div class="steer-resp">'+baseHtml+'</div></div>'+
             '<div class="steering-cmp-col steered"><div class="steering-cmp-h">Steered to this object</div><div class="steer-resp">'+steerHtml+'</div></div></div>'+
             (dd?'<div class="steering-diff-note"><mark class="dchg dsteer">amber</mark> = added / changed by steering &middot; <mark class="dchg dbase">struck</mark> = only in baseline</div>':'');
@@ -1548,7 +1549,7 @@
         $('steeringAria').textContent='Object '+sid;
       }
       function show(sid){ if(sid==null||sid<0)return; curSeg=sid; draw(sid); panel(sid); }
-      function buildTasks(){ const h=$('steeringTasks'); if(!h)return; const e=man.examples.find(x=>x.name===ex); const ts=['locate']; if(e&&e.has_dv){ ts.push('describe','vqa'); }
+      function buildTasks(){ const h=$('steeringTasks'); if(!h)return; const e=man.examples.find(x=>x.name===ex); const ts=['locate']; if(e&&e.has_dv){ ts.push('describe'); }
         h.innerHTML=''; ts.forEach(k=>{ const b=document.createElement('button'); b.textContent=TASKLBL[k]; b.className=(k===task?'on':''); b.onclick=()=>{ task=k; buildTasks(); draw(curSeg>=0?curSeg:-1); panel(curSeg>=0?curSeg:-1); }; h.appendChild(b); }); }
       function buildPills(){ const h=$('steeringPills'); h.innerHTML=''; man.examples.forEach(e=>{ const b=document.createElement('button'); b.textContent=e.name.replace('coco_','#'); b.className=(e.name===ex?'on':''); b.onclick=()=>select(e.name); h.appendChild(b); }); }
       async function select(e){
